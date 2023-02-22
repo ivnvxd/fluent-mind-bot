@@ -10,6 +10,7 @@ packages = [{include = "bot"}]
 python = "^3.10"
 python-dotenv = "^0.21.1"
 openai = "^0.26.5"
+python-telegram-bot = "^20.1"
 
 
 [build-system]
