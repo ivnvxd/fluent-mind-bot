@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "fluent-mind-bot"
+version = "0.1.0"
+description = ""
+authors = ["Andrey Ivanov <ivnv.xd@gmail.com>"]
+readme = "README.md"
+packages = [{include = "bot"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+python-dotenv = "^0.21.1"
+openai = "^0.26.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
