@@ -10,7 +10,7 @@ API_KEY = getenv('OPENAI_API_KEY')
 openai.api_key = API_KEY
 
 
-def gpt3_request(request):
+def gpt3_completion(request):
 
     completion = openai.Completion.create(
         engine=request['engine'],
@@ -18,6 +18,7 @@ def gpt3_request(request):
         temperature=request['temperature'],
         max_tokens=request['max_tokens'],
         top_p=1,
+        n=1,
         frequency_penalty=0,
         presence_penalty=0
     )
@@ -30,4 +31,18 @@ def gpt3_request(request):
     print('Human:', request['prompt'])
     print('GPT-3:', text)
 
-    return answer
+    return text
+
+
+def gpt3_edit(input):
+
+    edit = openai.Edit.create(
+        engine="text-davinci-edit-001",
+        input=input,
+        instruction="translate this sentence",
+        temperature=0.5,
+        top_p=1,
+        n=1
+    )
+
+    return edit

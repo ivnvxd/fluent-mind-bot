@@ -20,7 +20,7 @@ from os import getenv
 from dotenv import load_dotenv
 from functools import wraps
 
-from gpt import gpt3_request
+from gpt import gpt3_completion
 
 
 def send_action(action):
@@ -48,11 +48,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Define the conversation states
-CHOOSING, MODEL_PARAMETERS, LANGUAGE_MODEL, TEMPERATURE, MAX_TOKENS, OTHER, MEMORY_SETTINGS, ENABLE_CONTEXT, MEMORY_SIZE = range(9)
+# State definitions for top level conversation
+SELECTING_SETTING, MODEL_PARAMETERS, MEMORY_SETTINGS = map(chr, range(3))
+
+LANGUAGE_MODEL, TEMPERATURE, MAXIMUM_TOKENS = map(chr, range(3, 6))
+
+MEMORY_ENABLE, MEMORY_SIZE = map(chr, range(6, 8))
+
+# Meta states
+BACK, S = map(chr, range(8, 10))
+
 
 # Define the callback data constants
-SELECTING_ACTION, SELECTING_PARAMETER = range(2)
 
 # Define the model parameters dictionary to store the values
 # Models: text-davinci-003,text-curie-001,text-babbage-001,text-ada-001
@@ -64,13 +71,13 @@ request = {
 }
 
 # Define the memory settings dictionary to store the values
-memory_settings = {
-    "enable_context": True,
+memory = {
+    "enable_memory": True,
     "memory_size": 1024,
 }
 
 
-HELP_MESSAGE = """Commands:
+HELP_MESSAGE = """Available commands:
 ⚙️ /settings — Change GPT-3 settings
 ❓ /help — Show help
 📈 /stat — Show usage statistics
@@ -80,80 +87,152 @@ HELP_MESSAGE = """Commands:
 """
 
 
-# Top level conversation callbacks
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    reply_text = "Hi! I'm <b>GPT-3</b> bot implemented with OpenAI API 🤖\n\n"
-    reply_text += HELP_MESSAGE
-    reply_text += "\nAnd now... ask me anything!"
+@send_action(ChatAction.TYPING)
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    request['prompt'] = "Say in free form that your name is FluentMind, you are a GPT-3 Chatbot implemented with OpenAI API and you are ready to answer any questions."
 
-    await update.message.reply_text(reply_text, parse_mode=ParseMode.HTML)
+    text = "🤖: " + gpt3_completion(request)
+    text += "\n\n" + HELP_MESSAGE
+
+    request['prompt'] = ""
+
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
 
 async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+
     text = "What do you want to change?"
 
     buttons = [
         [
-            InlineKeyboardButton("Model parameters", callback_data=str(SELECTING_ACTION) + "_" + str(MODEL_PARAMETERS)),
-            InlineKeyboardButton("Memory settings", callback_data=str(SELECTING_ACTION) + "_" + str(MEMORY_SETTINGS)),
-        ]
+            InlineKeyboardButton("Model parameters", callback_data=str(MODEL_PARAMETERS)),
+            InlineKeyboardButton("Memory settings", callback_data=str(MEMORY_SETTINGS)),
+        ],
+        [
+            InlineKeyboardButton(text="Done", callback_data=str('/start')),
+        ],
     ]
-
-    # buttons = [
-    #     [
-    #         InlineKeyboardButton(text="Model parameters", callback_data=str(1)),
-    #         InlineKeyboardButton(text="Memory settings", callback_data=str(2)),
-    #     ],
-    #     [
-    #         InlineKeyboardButton(text="Maximum tokens", callback_data=str(3)),
-    #         InlineKeyboardButton(text="Other", callback_data=str(4)),
-    #     ],
-    #     [
-    #         InlineKeyboardButton(text=" « Back ", callback_data=str(1)),
-    #     ]
-    # ]
-
-    # buttons = [
-    #     [
-    #         InlineKeyboardButton(text="Language model", callback_data=str(1)),
-    #         InlineKeyboardButton(text="Temperature", callback_data=str(2)),
-    #     ],
-    #     [
-    #         InlineKeyboardButton(text="Maximum tokens", callback_data=str(3)),
-    #         InlineKeyboardButton(text="Other", callback_data=str(4)),
-    #     ],
-    #     [
-    #         InlineKeyboardButton(text=" « Back ", callback_data=str(1)),
-    #     ]
-    # ]
-
-    # buttons = [
-    #     [
-    #         InlineKeyboardButton(text="Enable context", callback_data=str(1)),
-    #         InlineKeyboardButton(text="Memory size", callback_data=str(2)),
-    #     ],
-    #     [
-    #         InlineKeyboardButton(text=" « Back ", callback_data=str(1)),
-    #     ]
-    # ]
-
-
 
     keyboard = InlineKeyboardMarkup(buttons)
 
-    await update.message.reply_text(text=text, reply_markup=keyboard)
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode='HTML')
 
-    return SELECTING_ACTION
+    else:
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=keyboard, parse_mode='HTML')
+
+    return SELECTING_SETTING
 
 
-async def change_temp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def model_parameters(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
-        "What sampling temperature to use, between 0 and 2. Higher values like <code>0.8</code> will make the output more random, while lower values like 0.2 will make it more focused and deterministic.\n"
-        f"Current temperature: {''}"
+        "What do you want to change?\n\n"
+        "<i>Current settings:</i>\n"
+        f"Language model: <b>{request['engine']}</b>\n"
+        f"Temperature: <b>{request['temperature']}</b>\n"
+        f"Maximum tokens: <b>{request['max_tokens']}</b>"
     )
 
+    buttons = [
+        [
+            InlineKeyboardButton(text="Language model", callback_data=str(LANGUAGE_MODEL)),
+            InlineKeyboardButton(text="Temperature", callback_data=str(TEMPERATURE)),
+            InlineKeyboardButton(text="Maximum tokens", callback_data=str(MAXIMUM_TOKENS)),
+        ],
+        [
+            InlineKeyboardButton(text="« Back", callback_data=str(SELECTING_SETTING)),
+        ],
+    ]
+
+    keyboard = InlineKeyboardMarkup(buttons)
+
+    if update.callback_query:
+        await update.callback_query.answer()
+        await update.callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode='HTML')
+
+    return MODEL_PARAMETERS
+
+
+async def change_lang_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return LANGUAGE_MODEL
+
+
+async def change_temp(update: Update, context: CallbackContext):
+    text = (
+        "What sampling temperature to use, between <b>0</b> and <b>2</b>. Higher values like <b>0.8</b> will make the output more random, while lower values like <b>0.2</b> will make it more focused and deterministic.\n\n"
+        f"Current temperature: <b>{request['temperature']}</b>"
+    )
+
+    buttons = [
+        [
+            InlineKeyboardButton(text="« Back", callback_data=str(MODEL_PARAMETERS))
+        ]
+    ]
+
+    keyboard = InlineKeyboardMarkup(buttons)
+
     await update.callback_query.answer()
-    await update.callback_query.edit_message_text(text=text, parse_mode='HTML')
+    await update.callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode='HTML')
+
+    return TEMPERATURE
+
+
+async def set_temperature(update: Update, context: CallbackContext):
+    temperature = update.message.text
+
+    request['temperature'] = temperature
+
+    confirmation_text = f"Temperature set to {temperature}."
+
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=confirmation_text, parse_mode='HTML')
+
+    return await model_parameters(update, context)
+    # return ConversationHandler.END
+
+
+async def change_max_tokens(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return MAXIMUM_TOKENS
+
+
+async def memory_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = (
+        "What do you want to change?\n\n"
+        "<i>Current settings:</i>\n"
+        f"Memory enabled: <b>{memory['enable_memory']}</b>\n"
+        f"Memory size (tokens): <b>{memory['memory_size']}</b>"
+    )
+
+    if memory['enable_memory']:
+        memory_enable = "Disable memory"
+    else:
+        memory_enable = "Enable memory"
+
+    buttons = [
+        [
+            InlineKeyboardButton(text=memory_enable, callback_data=str(MEMORY_ENABLE)),
+            InlineKeyboardButton(text="Memory size", callback_data=str(MEMORY_SIZE)),
+        ],
+        [
+            InlineKeyboardButton(text="« Back", callback_data=str(SELECTING_SETTING)),
+        ]
+    ]
+
+    keyboard = InlineKeyboardMarkup(buttons)
+
+    await update.callback_query.answer()
+    await update.callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode='HTML')
+
+    return MEMORY_SETTINGS
+
+
+async def enable_memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return MEMORY_ENABLE
+
+
+async def change_memory_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return MEMORY_SIZE
 
 
 async def help(update: Update, context: CallbackContext):
@@ -164,14 +243,14 @@ async def help(update: Update, context: CallbackContext):
 @send_action(ChatAction.TYPING)
 async def retry(update: Update, context: CallbackContext):
     """Repeat the last request to OpenAI API."""
-    response = gpt3_request(request)
+    response = gpt3_completion(request)
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=response, parse_mode='HTML')
 
 
 async def under_construction(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Stub function."""
-    text = "This function is not implemented yet :("
+    text = f"This function is not implemented yet :("
     await update.message.reply_text(text=text)
 
 
@@ -187,7 +266,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send request to OpenAI API and return the response."""
 
     request['prompt'] = update.message.text
-    response = gpt3_request(request)
+    response = gpt3_completion(request)
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text=response, parse_mode='HTML')
 
@@ -196,25 +275,49 @@ def main() -> None:
     """Run the bot."""
     application = Application.builder().token(TOKEN).build()
 
+    model_handlers = [
+        CallbackQueryHandler(change_lang_model, pattern="^" + str(LANGUAGE_MODEL) + "$"),
+        CallbackQueryHandler(change_temp, pattern="^" + str(TEMPERATURE) + "$"),
+        CallbackQueryHandler(change_max_tokens, pattern="^" + str(MAXIMUM_TOKENS) + "$"),
+        CallbackQueryHandler(settings, pattern="^" + str(SELECTING_SETTING) + "$"),
+    ]
+
+    memory_handlers = [
+        CallbackQueryHandler(enable_memory, pattern="^" + str(MEMORY_ENABLE) + "$"),
+        CallbackQueryHandler(change_memory_size, pattern="^" + str(MEMORY_SIZE) + "$"),
+        CallbackQueryHandler(settings, pattern="^" + str(SELECTING_SETTING) + "$"),
+    ]
+
+    settings_handler = ConversationHandler(
+        entry_points=[CommandHandler('settings', settings)],
+        states={
+            SELECTING_SETTING: [
+                CallbackQueryHandler(model_parameters, pattern="^" + str(MODEL_PARAMETERS) + "$"),
+                CallbackQueryHandler(memory_settings, pattern="^" + str(MEMORY_SETTINGS) + "$"),
+            ],
+            MODEL_PARAMETERS: model_handlers,
+            MEMORY_SETTINGS: memory_handlers,
+            TEMPERATURE: [
+                CallbackQueryHandler(change_temp, pattern="^" + str(TEMPERATURE) + "$"),
+                CallbackQueryHandler(model_parameters, pattern="^" + str(MODEL_PARAMETERS) + "$"),
+                MessageHandler(filters.TEXT & (~filters.COMMAND), set_temperature),
+            ]
+        },
+        fallbacks=[
+            CommandHandler('settings', settings),
+            CallbackQueryHandler(model_parameters, pattern="^" + str(MODEL_PARAMETERS) + "$"),
+                   ],
+    )
+
+    application.add_handler(settings_handler)
     application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('settings', settings))
     application.add_handler(CommandHandler('help', help))
     application.add_handler(CommandHandler('stat', under_construction))
     application.add_handler(CommandHandler('memo', under_construction))
     application.add_handler(CommandHandler('new', under_construction))
     application.add_handler(CommandHandler('retry', retry))
-
+    # application.add_handler(CallbackQueryHandler(get_temperature))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), echo))
-
-
-    # conv_handler = ConversationHandler(
-    #     entry_points=[CommandHandler('settings', settings)]
-    # )
-
-
-
-    application.add_handler(conv_handler)
-
     application.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     application.run_polling()
