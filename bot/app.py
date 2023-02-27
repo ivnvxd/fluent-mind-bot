@@ -1,9 +1,9 @@
 import logging
 
-
-from typing import Any, Dict, Tuple
-
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Update)
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -14,13 +14,38 @@ from telegram.ext import (
     filters,
     CallbackContext
 )
-from telegram.constants import ParseMode, ChatAction
+from telegram.constants import (
+    ParseMode,
+    ChatAction
+)
 
 from os import getenv
 from dotenv import load_dotenv
 from functools import wraps
 
-from gpt import gpt3_completion
+from gpt import gpt3_completion, gpt3_edit
+from settings import (
+    model_parameters,
+    language_model,
+    temperature,
+    set_temperature,
+    maximum_tokens,
+    memory_settings,
+    memory_enable,
+    memory_size
+)
+from constants import (
+    HELP_MESSAGE,
+    SELECTING_SETTING,
+    MODEL_PARAMETERS,
+    MEMORY_SETTINGS,
+    LANGUAGE_MODEL,
+    TEMPERATURE,
+    MAXIMUM_TOKENS,
+    MEMORY_ENABLE,
+    MEMORY_SIZE,
+)
+from gpt import request, memory
 
 
 def send_action(action):
@@ -46,45 +71,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
-
-# State definitions for top level conversation
-SELECTING_SETTING, MODEL_PARAMETERS, MEMORY_SETTINGS = map(chr, range(3))
-
-LANGUAGE_MODEL, TEMPERATURE, MAXIMUM_TOKENS = map(chr, range(3, 6))
-
-MEMORY_ENABLE, MEMORY_SIZE = map(chr, range(6, 8))
-
-# Meta states
-BACK, S = map(chr, range(8, 10))
-
-
-# Define the callback data constants
-
-# Define the model parameters dictionary to store the values
-# Models: text-davinci-003,text-curie-001,text-babbage-001,text-ada-001
-request = {
-    "engine": "text-davinci-003",
-    "prompt": "",
-    "temperature": 0.5,
-    "max_tokens": 1024,
-}
-
-# Define the memory settings dictionary to store the values
-memory = {
-    "enable_memory": True,
-    "memory_size": 1024,
-}
-
-
-HELP_MESSAGE = """Available commands:
-⚙️ /settings — Change GPT-3 settings
-❓ /help — Show help
-📈 /stat — Show usage statistics
-💾 /memo — Show current context
-🆕 /new — Start new dialog
-🔄 /retry — Regenerate last bot answer
-"""
 
 
 @send_action(ChatAction.TYPING)
@@ -124,115 +110,6 @@ async def settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id=update.effective_chat.id, text=text, reply_markup=keyboard, parse_mode='HTML')
 
     return SELECTING_SETTING
-
-
-async def model_parameters(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "What do you want to change?\n\n"
-        "<i>Current settings:</i>\n"
-        f"Language model: <b>{request['engine']}</b>\n"
-        f"Temperature: <b>{request['temperature']}</b>\n"
-        f"Maximum tokens: <b>{request['max_tokens']}</b>"
-    )
-
-    buttons = [
-        [
-            InlineKeyboardButton(text="Language model", callback_data=str(LANGUAGE_MODEL)),
-            InlineKeyboardButton(text="Temperature", callback_data=str(TEMPERATURE)),
-            InlineKeyboardButton(text="Maximum tokens", callback_data=str(MAXIMUM_TOKENS)),
-        ],
-        [
-            InlineKeyboardButton(text="« Back", callback_data=str(SELECTING_SETTING)),
-        ],
-    ]
-
-    keyboard = InlineKeyboardMarkup(buttons)
-
-    if update.callback_query:
-        await update.callback_query.answer()
-        await update.callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode='HTML')
-
-    return MODEL_PARAMETERS
-
-
-async def change_lang_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return LANGUAGE_MODEL
-
-
-async def change_temp(update: Update, context: CallbackContext):
-    text = (
-        "What sampling temperature to use, between <b>0</b> and <b>2</b>. Higher values like <b>0.8</b> will make the output more random, while lower values like <b>0.2</b> will make it more focused and deterministic.\n\n"
-        f"Current temperature: <b>{request['temperature']}</b>"
-    )
-
-    buttons = [
-        [
-            InlineKeyboardButton(text="« Back", callback_data=str(MODEL_PARAMETERS))
-        ]
-    ]
-
-    keyboard = InlineKeyboardMarkup(buttons)
-
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode='HTML')
-
-    return TEMPERATURE
-
-
-async def set_temperature(update: Update, context: CallbackContext):
-    temperature = update.message.text
-
-    request['temperature'] = temperature
-
-    confirmation_text = f"Temperature set to {temperature}."
-
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=confirmation_text, parse_mode='HTML')
-
-    return await model_parameters(update, context)
-    # return ConversationHandler.END
-
-
-async def change_max_tokens(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return MAXIMUM_TOKENS
-
-
-async def memory_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "What do you want to change?\n\n"
-        "<i>Current settings:</i>\n"
-        f"Memory enabled: <b>{memory['enable_memory']}</b>\n"
-        f"Memory size (tokens): <b>{memory['memory_size']}</b>"
-    )
-
-    if memory['enable_memory']:
-        memory_enable = "Disable memory"
-    else:
-        memory_enable = "Enable memory"
-
-    buttons = [
-        [
-            InlineKeyboardButton(text=memory_enable, callback_data=str(MEMORY_ENABLE)),
-            InlineKeyboardButton(text="Memory size", callback_data=str(MEMORY_SIZE)),
-        ],
-        [
-            InlineKeyboardButton(text="« Back", callback_data=str(SELECTING_SETTING)),
-        ]
-    ]
-
-    keyboard = InlineKeyboardMarkup(buttons)
-
-    await update.callback_query.answer()
-    await update.callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode='HTML')
-
-    return MEMORY_SETTINGS
-
-
-async def enable_memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return MEMORY_ENABLE
-
-
-async def change_memory_size(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    return MEMORY_SIZE
 
 
 async def help(update: Update, context: CallbackContext):
@@ -276,15 +153,15 @@ def main() -> None:
     application = Application.builder().token(TOKEN).build()
 
     model_handlers = [
-        CallbackQueryHandler(change_lang_model, pattern="^" + str(LANGUAGE_MODEL) + "$"),
-        CallbackQueryHandler(change_temp, pattern="^" + str(TEMPERATURE) + "$"),
-        CallbackQueryHandler(change_max_tokens, pattern="^" + str(MAXIMUM_TOKENS) + "$"),
+        CallbackQueryHandler(language_model, pattern="^" + str(LANGUAGE_MODEL) + "$"),
+        CallbackQueryHandler(temperature, pattern="^" + str(TEMPERATURE) + "$"),
+        CallbackQueryHandler(maximum_tokens, pattern="^" + str(MAXIMUM_TOKENS) + "$"),
         CallbackQueryHandler(settings, pattern="^" + str(SELECTING_SETTING) + "$"),
     ]
 
     memory_handlers = [
-        CallbackQueryHandler(enable_memory, pattern="^" + str(MEMORY_ENABLE) + "$"),
-        CallbackQueryHandler(change_memory_size, pattern="^" + str(MEMORY_SIZE) + "$"),
+        CallbackQueryHandler(memory_enable, pattern="^" + str(MEMORY_ENABLE) + "$"),
+        CallbackQueryHandler(memory_size, pattern="^" + str(MEMORY_SIZE) + "$"),
         CallbackQueryHandler(settings, pattern="^" + str(SELECTING_SETTING) + "$"),
     ]
 
@@ -298,8 +175,8 @@ def main() -> None:
             MODEL_PARAMETERS: model_handlers,
             MEMORY_SETTINGS: memory_handlers,
             TEMPERATURE: [
-                CallbackQueryHandler(change_temp, pattern="^" + str(TEMPERATURE) + "$"),
-                CallbackQueryHandler(model_parameters, pattern="^" + str(MODEL_PARAMETERS) + "$"),
+                # CallbackQueryHandler(temperature, pattern="^" + str(TEMPERATURE) + "$"),
+                # CallbackQueryHandler(model_parameters, pattern="^" + str(MODEL_PARAMETERS) + "$"),
                 MessageHandler(filters.TEXT & (~filters.COMMAND), set_temperature),
             ]
         },

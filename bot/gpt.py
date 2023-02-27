@@ -9,6 +9,21 @@ load_dotenv()
 API_KEY = getenv('OPENAI_API_KEY')
 openai.api_key = API_KEY
 
+# Define the model parameters dictionary to store the values
+# Models: text-davinci-003,text-curie-001,text-babbage-001,text-ada-001
+request = {
+    "engine": "text-davinci-003",
+    "prompt": "",
+    "temperature": 0.5,
+    "max_tokens": 1024,
+}
+
+# Define the memory settings dictionary to store the values
+memory = {
+    "enable_memory": True,
+    "memory_size": 1024,
+}
+
 
 def gpt3_completion(request):
 
