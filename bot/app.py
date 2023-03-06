@@ -28,7 +28,8 @@ openai.api_key = API_KEY
 
 # Enable logging
 logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,10 @@ def send_action(action):
     def decorator(func):
         @wraps(func)
         async def command_func(update, context, *args, **kwargs):
-            await context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=action)
+            await context.bot.send_chat_action(
+                chat_id=update.effective_message.chat_id,
+                action=action
+            )
             return await func(update, context, *args, **kwargs)
 
         return command_func
@@ -93,7 +97,10 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     answer = response['choices'][0]['message']['content']
 
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=answer, parse_mode='HTML')
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id, text=answer,
+        parse_mode='HTML'
+    )
 
 
 def main() -> None:
@@ -102,7 +109,10 @@ def main() -> None:
 
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), echo))
+    application.add_handler(MessageHandler(
+        filters.TEXT & (~filters.COMMAND),
+        echo
+    ))
     application.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     application.run_polling()
