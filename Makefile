@@ -1,5 +1,5 @@
 lint:
-	poetry run flake8 bot
+	poetry run flake8 bot fluent_mind
 
 test:
 	poetry run pytest --cov=fluent_mind

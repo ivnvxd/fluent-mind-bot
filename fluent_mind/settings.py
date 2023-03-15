@@ -9,6 +9,10 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# TELEGRAM_WEBHOOK_URL = os.getenv("TELEGRAM_WEBHOOK_URL")
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -21,6 +25,7 @@ ALLOWED_HOSTS = [
     '0.0.0.0',
     '.railway.app',
     'localhost',
+    '.ngrok.io',
 ]
 
 
@@ -35,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'bootstrap4',
     'fluent_mind',
+    'fluent_mind.users',
+    'fluent_mind.bot',
 ]
 
 MIDDLEWARE = [
@@ -97,6 +104,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = 'users.User'
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
