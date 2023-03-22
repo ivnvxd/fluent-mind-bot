@@ -10,8 +10,8 @@ urlpatterns = [
     # path('login/', UserLoginView.as_view(), name='login'),
     # path('logout/', UserLogoutView.as_view(), name='logout'),
 
-    path('bot/', include('fluent_mind.bot.urls')),
-    path('users/', include('fluent_mind.users.urls')),
+    path('bot/', include('bot.urls')),
+    path('users/', include('users.urls')),
 
     path('admin/', admin.site.urls),
 ]

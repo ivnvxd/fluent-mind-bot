@@ -4,7 +4,7 @@ version = "0.1.0"
 description = ""
 authors = ["Andrey Ivanov <ivnv.xd@gmail.com>"]
 readme = "README.md"
-packages = [{include = "fluent_mind"}]
+packages = [{include = "config"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
