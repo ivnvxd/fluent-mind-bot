@@ -1,8 +1,10 @@
 import logging
 import openai
 from functools import wraps
+from asgiref.sync import sync_to_async
 
 from django.conf import settings
+from chats.models import Chat
 
 from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, filters, CallbackContext, ContextTypes, PicklePersistence
@@ -28,6 +30,8 @@ HELP_MESSAGE = """Available commands:
 messages = [
         {"role": "system", "content": "You are an English teacher. You will write a sentence in Russian and wait for the translation. Do not answer by yourself. Write only one sentence in Russian. After you get the answer, tell me whether my answer was correct or not, and write an explanation if I was wrong. Then go on to the next question."}
     ]
+
+create_message_async = sync_to_async(Chat.objects.create)
 
 
 def send_action(action):
@@ -79,6 +83,16 @@ async def message(update: Update, context: CallbackContext):
         context.chat_data["messages"] = messages
 
     request = update.message.text
+    user_id = update.message.chat.id
+    username = update.message.from_user.username
+
+    await create_message_async(
+        role='user',
+        user_id=user_id,
+        username=username,
+        text=request,
+    )
+
     context.chat_data["messages"].append({"role": "user", "content": request})
 
     response = openai.ChatCompletion.create(
@@ -89,10 +103,14 @@ async def message(update: Update, context: CallbackContext):
     answer = response['choices'][0]['message']['content']
     context.chat_data["messages"].append({"role": "assistant", "content": answer})
 
-    # print(response)
-    print(context.user_data)
+    await create_message_async(
+        role='assistant',
+        user_id=user_id,
+        username=username,
+        text=answer,
+    )
+
     print(context.chat_data)
-    print(context.chat_data["messages"])
 
     await context.bot.send_message(
         chat_id=update.effective_chat.id, text=answer,

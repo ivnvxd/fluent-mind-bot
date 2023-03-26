@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% load bootstrap4 %}
+
+{% block title %}
+    {{ title }} | Fluent Mind
+{% endblock %}
+
+{% block content %}
+    <h1 class="my-4">{{ title }}</h1>
+
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>ID</th>
+                <th>Role</th>
+                <th>User ID</th>
+                <th>Username</th>
+                <th>Text</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% if chats %}
+                {% for chat in chats %}
+                    <tr>
+                        <td>{{ chat.id }}</td>
+                        <td>{{ chat.role }}</td>
+                        <td>{{ chat.user_id }}</td>
+                        <td>{{ chat.username }}</td>
+                        <td>{{ chat.text }}</td>
+                        <td>{{ chat.date|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+{% endblock content %}
