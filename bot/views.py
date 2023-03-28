@@ -4,17 +4,13 @@ import asyncio
 from django.http import HttpResponse, JsonResponse
 from django.views import View
 
-from .bot import build, run
+from .bot import run
 
 
 class TelegramBotWebhookView(View):
     def post(self, request, *args, **kwargs):
 
         data = json.loads(request.body)
-
-        application = build()
-        asyncio.run(run(application, data))
-
-        # print(data)
+        asyncio.run(run(data))
 
         return JsonResponse({'message': 'OK'}, status=200)

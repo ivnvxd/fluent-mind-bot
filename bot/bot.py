@@ -9,7 +9,7 @@ from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, filters, CallbackContext, ContextTypes, PicklePersistence
 from telegram.constants import ParseMode, ChatAction
 
-from helpers import send_action
+from .helpers import send_action
 
 TOKEN = settings.TELEGRAM_BOT_TOKEN
 API_KEY = settings.OPENAI_API_KEY
@@ -27,9 +27,13 @@ HELP_MESSAGE = """Available commands:
 ❓ /help — Show help
 """
 
+# messages = [
+#         {"role": "system", "content": "You are an English teacher. You will write a sentence in Russian and wait for the translation. Do not answer by yourself. Write only one sentence in Russian. After you get the answer, tell me whether my answer was correct or not, and write an explanation if I was wrong. Then go on to the next question."}
+#     ]
+
 messages = [
-        {"role": "system", "content": "You are an English teacher. You will write a sentence in Russian and wait for the translation. Do not answer by yourself. Write only one sentence in Russian. After you get the answer, tell me whether my answer was correct or not, and write an explanation if I was wrong. Then go on to the next question."}
-    ]
+    {"role": "system", "content": "As an advanced chatbot Assistant, your primary goal is to assist users to the best of your ability. This may involve answering questions, providing helpful information, or completing tasks based on user input. In order to effectively assist users, it is important to be detailed and thorough in your responses. Use examples and evidence to support your points and justify your recommendations or solutions. Remember to always prioritize the needs and satisfaction of the user. Your ultimate goal is to provide a helpful and enjoyable experience for the user."}
+]
 
 create_message_async = sync_to_async(Chat.objects.create)
 
@@ -105,24 +109,19 @@ async def echo(update: Update, context: CallbackContext):
     await context.bot.send_message(chat_id=update.message.chat_id, text=update.message.text)
 
 
-def build():
-    # persistence = PicklePersistence(filepath="conversationbot")
+# persistence = PicklePersistence(filepath="conversationbot")
 
-    application = Application.builder().token(TOKEN).build()
+application = Application.builder().token(TOKEN).build()
 
-    application.add_handler(CommandHandler('start', start))
-    application.add_handler(CommandHandler('help', help))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), message))
-    application.add_handler(MessageHandler(filters.COMMAND, unknown))
-
-    return application
+application.add_handler(CommandHandler('start', start))
+application.add_handler(CommandHandler('help', help))
+application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), message))
+application.add_handler(MessageHandler(filters.COMMAND, unknown))
 
 
-async def run(application, data):
+async def run(data):
     async with application:
-        await application.initialize()
-        await application.start()
-        await application.update_queue.put(
+        # await application.initialize()
+        await application.process_update(
             Update.de_json(data=data, bot=application.bot)
         )
-        await application.stop()
