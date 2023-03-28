@@ -1,6 +1,5 @@
 import logging
 import openai
-from functools import wraps
 from asgiref.sync import sync_to_async
 
 from django.conf import settings
@@ -10,6 +9,7 @@ from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, filters, CallbackContext, ContextTypes, PicklePersistence
 from telegram.constants import ParseMode, ChatAction
 
+from helpers import send_action
 
 TOKEN = settings.TELEGRAM_BOT_TOKEN
 API_KEY = settings.OPENAI_API_KEY
@@ -32,23 +32,6 @@ messages = [
     ]
 
 create_message_async = sync_to_async(Chat.objects.create)
-
-
-def send_action(action):
-    """Sends `action` while processing func command."""
-
-    def decorator(func):
-        @wraps(func)
-        async def command_func(update, context, *args, **kwargs):
-            await context.bot.send_chat_action(
-                chat_id=update.effective_message.chat_id,
-                action=action
-            )
-            return await func(update, context, *args, **kwargs)
-
-        return command_func
-
-    return decorator
 
 
 @send_action(ChatAction.TYPING)
