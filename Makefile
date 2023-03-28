@@ -2,10 +2,12 @@ lint:
 	poetry run flake8 config bot users
 
 test:
-	poetry run pytest --cov=config --cov=bot --cov=users
+	poetry run python3 manage.py test
 
 test-coverage:
-	poetry run pytest --cov=config --cov-report xml
+	poetry run coverage run manage.py test
+	poetry run coverage report -m --omit=manage.py
+	poetry run coverage xml --omit=manage.py
 
 install:
 	poetry install
