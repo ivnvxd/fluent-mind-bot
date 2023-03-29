@@ -6,8 +6,8 @@ test:
 
 test-coverage:
 	poetry run coverage run manage.py test
-	poetry run coverage report -m --omit=manage.py
-	poetry run coverage xml --omit=manage.py
+	poetry run coverage report -m
+	poetry run coverage xml
 
 install:
 	poetry install
