@@ -1,14 +1,14 @@
 from django.db import models
 
 
-class Chat(models.Model):
+class Text(models.Model):
     role = models.CharField(
         max_length=25,
         verbose_name='Role'
     )
-    user_id = models.CharField(
+    telegram_id = models.CharField(
         max_length=25,
-        verbose_name='User ID'
+        verbose_name='Telegram user ID'
     )
     username = models.CharField(
         max_length=250,
@@ -22,10 +22,17 @@ class Chat(models.Model):
         auto_now_add=True,
         verbose_name='Date'
     )
+    tokens = models.IntegerField(
+        verbose_name='Tokens'
+    )
 
     def __str__(self):
         return self.text
 
     class Meta:
-        verbose_name = 'Chat'
-        verbose_name_plural = 'Chats'
+        verbose_name = 'Text'
+        verbose_name_plural = 'Texts'
+
+
+class Chat(models.Model):
+    pass
