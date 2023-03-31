@@ -13,6 +13,10 @@ from .helpers import send_action
 
 
 HELP_MESSAGE = """Available commands:
+🔄 /retry — Regenerate last answer (🚧)
+✨ /new — Start new chat (🚧)
+📝 /history — Show previous chats (🚧)
+💾 /save — Save current chat (🚧)
 ❓ /help — Show help
 """
 
@@ -23,19 +27,11 @@ HELP_MESSAGE = """Available commands:
 system = {"role": "system", "content": "You are a helpful assistant."}
 
 
-
-
-
-# logging.basicConfig(level=logging.WARNING)
-# logger = logging.getLogger(__name__)
-
-
-
 @send_action(ChatAction.TYPING)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Start the bot."""
 
-    text = "Hi! I'm <b>ChatGPT</b> bot implemented with GPT-3.5 OpenAI API 🤖\n\n"
+    text = "🤖 Hi! I'm <b>ChatGPT</b> bot implemented with GPT-3.5 OpenAI API 🤖\n\n"
     text += HELP_MESSAGE
     text += "\nAnd now... ask me anything!"
 
@@ -56,87 +52,27 @@ async def unknown(update: Update, context: CallbackContext):
     await context.bot.send_message(chat_id=update.message.chat_id, text=text)
 
 
-# @send_action(ChatAction.TYPING)
-# async def message(update: Update, context: CallbackContext):
-#
-#     text = update.message.text
-#     user_id = update.message.chat.id
-#     username = update.message.from_user.username
-#
-#     create_message_async = sync_to_async(Chat.objects.create)
-#     await create_message_async(
-#         role='user',
-#         user_id=user_id,
-#         username=username,
-#         text=text,
-#     )
-#
-#     get_messages_async = sync_to_async(Chat.objects.filter)
-#     # messages = await get_messages_async(
-#     #     user_id=user_id,
-#     # )
-#
-#     if not context.user_data:
-#         request = [system]
-#     else:
-#         request = context.user_data.get("chat")
-#
-#     request.append({"role": "user", "content": text})
-#     context.user_data.update({"chat": request})
-#
-#     response = openai.ChatCompletion.create(
-#         model="gpt-3.5-turbo",
-#         messages=context.user_data.get("chat")
-#     )
-#
-#     print(response)
-#
-#     answer = response['choices'][0]['message']['content']
-#
-#     request.append({"role": "assistant", "content": answer})
-#
-#     await create_message_async(
-#         role='assistant',
-#         user_id=user_id,
-#         username=username,
-#         text=answer,
-#     )
-#
-#     print("user:", context.user_data)
-#
-#     await context.bot.send_message(
-#         chat_id=update.effective_chat.id,
-#         text=answer,
-#         parse_mode='Markdown'
-#     )
-
-
 @send_action(ChatAction.TYPING)
 async def echo(update: Update, context: CallbackContext):
     await context.bot.send_message(chat_id=update.message.chat_id, text=update.message.text)
 
 
-
-
-
-
-
-
-
 @sync_to_async
-def create_text(**kwargs):
+def add_entry(**kwargs):
     text = Text.objects.create(**kwargs)
     return text
 
 
 @sync_to_async
-def get_user_messages(**kwargs):
+def get_messages(**kwargs):
     messages = Text.objects.filter(**kwargs).order_by('id')
 
-    # Build the request list from the messages in the database
     request = [system]
     for message in messages:
-        request.append({"role": message.role, "content": message.text})
+        request.extend([
+            {"role": "user", "content": message.request},
+            {"role": "assistant", "content": message.response}
+        ])
 
     return request
 
@@ -148,13 +84,10 @@ async def chat(update: Update, context: CallbackContext):
     telegram_id = update.message.chat.id
     username = update.message.from_user.username
 
-    # Get all the messages for this user from the database
-    request = await get_user_messages(telegram_id=telegram_id)
+    request = await get_messages(telegram_id=telegram_id)
 
-    # Add current message to the request
     request.append({"role": 'user', "content": text})
 
-    # Call OpenAI API to generate the response
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=request
@@ -169,25 +102,17 @@ async def chat(update: Update, context: CallbackContext):
     print(usage)
     print(answer)
 
-    # Save the user message in the database
-    chat = await create_text(
-        role='user',
+    await add_entry(
         telegram_id=telegram_id,
         username=username,
-        text=text,
-        tokens=prompt_tokens,
+        request=text,
+        response=answer,
+        completion_tokens=completion_tokens,
+        prompt_tokens=prompt_tokens,
     )
 
-    # Save the assistant message in the database
-    chat = await create_text(
-        role='assistant',
-        telegram_id=telegram_id,
-        username='ChatGPT',
-        text=answer,
-        tokens=completion_tokens,
-    )
+    print(update.message)
 
-    # Send the assistant message to the user
     await context.bot.send_message(
         chat_id=telegram_id,
         text=answer,

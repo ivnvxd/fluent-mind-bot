@@ -13,12 +13,13 @@
         <thead class="thead-dark">
             <tr>
                 <th>ID</th>
-                <th>Role</th>
                 <th>Telegram ID</th>
                 <th>Username</th>
-                <th>Text</th>
+                <th>Request</th>
+                <th>Response</th>
                 <th>Date</th>
-                <th>Tokens</th>
+                <th>Completion tokens</th>
+                <th>Prompt tokens</th>
             </tr>
         </thead>
 
@@ -27,12 +28,13 @@
                 {% for text in texts %}
                     <tr>
                         <td>{{ text.id }}</td>
-                        <td>{{ text.role }}</td>
                         <td>{{ text.telegram_id }}</td>
                         <td>{{ text.username }}</td>
-                        <td>{{ text.text }}</td>
+                        <td>{{ text.request }}</td>
+                        <td>{{ text.response }}</td>
                         <td>{{ text.date|date:"d.m.Y H:i" }}</td>
-                        <td>{{ text.tokens }}</td>
+                        <td>{{ text.completion_tokens }}</td>
+                        <td>{{ text.prompt_tokens }}</td>
                     </tr>
                 {% endfor %}
             {% endif %}

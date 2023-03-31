@@ -2,28 +2,34 @@ from django.db import models
 
 
 class Text(models.Model):
-    role = models.CharField(
-        max_length=25,
-        verbose_name='Role'
-    )
     telegram_id = models.CharField(
         max_length=25,
         verbose_name='Telegram user ID'
     )
     username = models.CharField(
         max_length=250,
-        verbose_name='Username'
+        null=True,
+        # blank=True,
+        verbose_name='Username',
+
     )
-    text = models.TextField(
+    request = models.TextField(
         max_length=10000,
-        verbose_name='Text'
+        verbose_name='Request'
+    )
+    response = models.TextField(
+        max_length=10000,
+        verbose_name='Response'
     )
     date = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Date'
     )
-    tokens = models.IntegerField(
-        verbose_name='Tokens'
+    completion_tokens = models.IntegerField(
+        verbose_name='Completion tokens'
+    )
+    prompt_tokens = models.IntegerField(
+        verbose_name='Prompt tokens'
     )
 
     def __str__(self):
