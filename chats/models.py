@@ -9,11 +9,13 @@ class Chat(models.Model):
     )
     topic = models.CharField(
         max_length=250,
-        verbose_name='Topic'
+        verbose_name='Topic',
+        blank=True
     )
     summary = models.CharField(
         max_length=1000,
-        verbose_name='Summary'
+        verbose_name='Summary',
+        blank=True
     )
     creation_date = models.DateTimeField(
         default=timezone.now,

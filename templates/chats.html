@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% load bootstrap4 %}
+
+{% block title %}
+    {{ title }} | Fluent Mind
+{% endblock %}
+
+{% block content %}
+    <h1 class="my-4">{{ title }}</h1>
+
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>ID</th>
+                <th>Telegram ID</th>
+                <th>Topic</th>
+                <th>Summary</th>
+                <th>Creation date</th>
+                <th>Last update</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% if chats %}
+                {% for chat in chats %}
+                    <tr>
+                        <td>{{ chat.id }}</td>
+                        <td>{{ chat.telegram_id }}</td>
+                        <td>{{ chat.topic }}</td>
+                        <td>{{ chat.summary }}</td>
+                        <td>{{ chat.creation_date|date:"d.m.Y H:i" }}</td>
+                        <td>{{ chat.last_update|date:"d.m.Y H:i" }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+{% endblock content %}

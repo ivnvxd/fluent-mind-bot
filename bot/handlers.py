@@ -23,23 +23,54 @@ system = {"role": "system", "content": "You are a helpful assistant."}
 
 
 @sync_to_async
-def add_entry(**kwargs):
-    text = Text.objects.create(**kwargs)
+def get_or_create_chat(telegram_id, create_new_chat=False):
+    if create_new_chat:
+        chat = Chat.objects.create(telegram_id=telegram_id)
+    else:
+        chat = Chat.objects.filter(telegram_id=telegram_id).order_by('-creation_date').first()
+        if not chat:
+            chat = Chat.objects.create(telegram_id=telegram_id)
+    return chat
+
+
+@sync_to_async
+def get_messages_count(telegram_id, chat):
+    return Text.objects.filter(telegram_id=telegram_id, chat=chat).count()
+
+
+@sync_to_async
+def create_message_entry(chat, **kwargs):
+    text = Text.objects.create(chat=chat, **kwargs)
     return text
 
 
 @sync_to_async
-def get_messages(**kwargs):
-    messages = Text.objects.filter(**kwargs).order_by('-id')[:10]
+def get_conversation_history(telegram_id, chat):
+    messages = Text.objects.filter(telegram_id=telegram_id, chat=chat).order_by('date')
 
     request = [system]
-    for message in reversed(messages):
+    for message in messages:
         request.extend([
             {"role": "user", "content": message.request},
             {"role": "assistant", "content": message.response}
         ])
 
     return request
+
+
+@sync_to_async
+def save_chat(chat):
+    chat.save()
+
+
+@sync_to_async
+def delete_chat(chat):
+    chat.delete()
+
+
+async def get_first_sentence(response_text):
+    first_sentence = response_text.split('.')[0].strip()
+    return first_sentence
 
 
 @send_action(ChatAction.TYPING)
@@ -57,6 +88,21 @@ async def help(update: Update, context: CallbackContext):
     """Show available commands."""
 
     await context.bot.send_message(chat_id=update.message.chat_id, text=HELP_MESSAGE, parse_mode=ParseMode.HTML)
+
+
+async def new(update: Update, context: CallbackContext):
+    telegram_id = update.message.chat.id
+    current_chat = await get_or_create_chat(telegram_id)
+
+    messages_count = await get_messages_count(telegram_id, current_chat)
+
+    if messages_count == 0:
+        await delete_chat(current_chat)
+
+    chat = await get_or_create_chat(telegram_id, create_new_chat=True)
+
+    text = f"Let's start over.\n\nYou can always go back to previous conversations with the /history command."
+    await update.message.reply_text(text)
 
 
 async def unknown(update: Update, context: CallbackContext):
@@ -79,7 +125,8 @@ async def chat(update: Update, context: CallbackContext):
     telegram_id = update.message.chat.id
     username = update.message.from_user.username
 
-    request = await get_messages(telegram_id=telegram_id)
+    chat = await get_or_create_chat(telegram_id)
+    request = await get_conversation_history(telegram_id=telegram_id, chat=chat)
 
     request.append({"role": 'user', "content": text})
 
@@ -97,7 +144,14 @@ async def chat(update: Update, context: CallbackContext):
     print(usage)
     print(answer)
 
-    await add_entry(
+    if chat.topic == "" and chat.summary == "":
+        first_sentence = await get_first_sentence(answer)
+        chat.topic = first_sentence[:250]
+        chat.summary = first_sentence[:1000]
+        await save_chat(chat)
+
+    text_entry = await create_message_entry(
+        chat=chat,
         telegram_id=telegram_id,
         username=username,
         request=text,
@@ -105,6 +159,9 @@ async def chat(update: Update, context: CallbackContext):
         completion_tokens=completion_tokens,
         prompt_tokens=prompt_tokens,
     )
+
+    chat.last_update = timezone.now()  # Update the last_update field of the Chat model
+    await save_chat(chat)
 
     print(update.message)
 

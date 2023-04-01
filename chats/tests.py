@@ -11,5 +11,5 @@ class TestListMessages(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(
             response,
-            template_name='messages.html'
+            template_name='chats.html'
         )

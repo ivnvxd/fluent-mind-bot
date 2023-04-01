@@ -5,7 +5,7 @@ from django.conf import settings
 from telegram import Update
 from telegram.ext import Application, MessageHandler, CommandHandler, filters
 
-from .handlers import start, help, unknown, chat
+from .handlers import start, help, unknown, chat, new
 
 
 TOKEN = settings.TELEGRAM_BOT_TOKEN
@@ -21,6 +21,7 @@ application = Application.builder().token(TOKEN).build()
 
 application.add_handler(CommandHandler('start', start))
 application.add_handler(CommandHandler('help', help))
+application.add_handler(CommandHandler('new', new))
 application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), chat))
 application.add_handler(MessageHandler(filters.COMMAND, unknown))
 

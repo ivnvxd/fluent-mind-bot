@@ -1,9 +1,9 @@
 from django.views.generic import ListView
 
-from .models import Text
+from .models import Text, Chat
 
 
-class ChatsListView(ListView):
+class MessagesListView(ListView):
     """
     Show all messages.
     """
@@ -12,4 +12,12 @@ class ChatsListView(ListView):
     context_object_name = 'texts'
     extra_context = {
         'title': 'Messages'
+    }
+
+class ChatsListView(ListView):
+    template_name = 'chats.html'
+    model = Chat
+    context_object_name = 'chats'
+    extra_context = {
+        'title': 'Chats'
     }
