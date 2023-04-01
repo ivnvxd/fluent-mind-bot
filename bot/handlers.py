@@ -6,16 +6,16 @@ from telegram import Update
 from telegram.ext import CallbackContext, ContextTypes
 from telegram.constants import ParseMode, ChatAction
 
-from .helpers import send_action, get_messages_count, get_or_create_chat, \
-    get_first_sentence, get_conversation_history, create_message_entry, \
-    save_chat, delete_chat
+from .helpers import send_action, get_first_sentence, save_chat, delete_chat
+from .database import get_messages_count, get_or_create_chat, \
+    get_conversation_history, create_message_entry
 
 
 HELP_MESSAGE = """Available commands:
-🔄 /retry — Regenerate last answer (🚧)
+🔄 /retry — Regenerate last answer 🚧
 ✨ /new — Start new chat
-📝 /history — Show previous chats (🚧)
-💾 /save — Save current chat (🚧)
+📝 /history — Show previous chats 🚧
+💾 /save — Save current chat 🚧
 ❓ /help — Show help
 """
 
