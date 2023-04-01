@@ -1,8 +1,7 @@
-import logging
 import openai
 from asgiref.sync import sync_to_async
 
-from django.conf import settings
+from django.utils import timezone
 from chats.models import Text, Chat
 
 from telegram import Update
@@ -20,11 +19,27 @@ HELP_MESSAGE = """Available commands:
 ❓ /help — Show help
 """
 
-# system = {
-#     "role": "system", "content": "As an advanced chatbot Assistant, your primary goal is to assist users to the best of your ability. This may involve answering questions, providing helpful information, or completing tasks based on user input. In order to effectively assist users, it is important to be detailed and thorough in your responses. Use examples and evidence to support your points and justify your recommendations or solutions. Remember to always prioritize the needs and satisfaction of the user. Your ultimate goal is to provide a helpful and enjoyable experience for the user."
-# }
-
 system = {"role": "system", "content": "You are a helpful assistant."}
+
+
+@sync_to_async
+def add_entry(**kwargs):
+    text = Text.objects.create(**kwargs)
+    return text
+
+
+@sync_to_async
+def get_messages(**kwargs):
+    messages = Text.objects.filter(**kwargs).order_by('-id')[:10]
+
+    request = [system]
+    for message in reversed(messages):
+        request.extend([
+            {"role": "user", "content": message.request},
+            {"role": "assistant", "content": message.response}
+        ])
+
+    return request
 
 
 @send_action(ChatAction.TYPING)
@@ -55,26 +70,6 @@ async def unknown(update: Update, context: CallbackContext):
 @send_action(ChatAction.TYPING)
 async def echo(update: Update, context: CallbackContext):
     await context.bot.send_message(chat_id=update.message.chat_id, text=update.message.text)
-
-
-@sync_to_async
-def add_entry(**kwargs):
-    text = Text.objects.create(**kwargs)
-    return text
-
-
-@sync_to_async
-def get_messages(**kwargs):
-    messages = Text.objects.filter(**kwargs).order_by('id')
-
-    request = [system]
-    for message in messages:
-        request.extend([
-            {"role": "user", "content": message.request},
-            {"role": "assistant", "content": message.response}
-        ])
-
-    return request
 
 
 @send_action(ChatAction.TYPING)

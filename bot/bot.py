@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 
 from telegram import Update
-from telegram.ext import Application, MessageHandler, CommandHandler, filters, PicklePersistence
+from telegram.ext import Application, MessageHandler, CommandHandler, filters
 
 from .handlers import start, help, unknown, chat
 
@@ -17,14 +17,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# persistence = PicklePersistence(filepath="persistence")
-
-# application = Application.builder().token(TOKEN).persistence(persistence=persistence).build()
 application = Application.builder().token(TOKEN).build()
 
 application.add_handler(CommandHandler('start', start))
 application.add_handler(CommandHandler('help', help))
-# application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), message))
 application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), chat))
 application.add_handler(MessageHandler(filters.COMMAND, unknown))
 

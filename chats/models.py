@@ -1,4 +1,35 @@
 from django.db import models
+from django.utils import timezone
+
+
+class Chat(models.Model):
+    telegram_id = models.CharField(
+        max_length=25,
+        verbose_name='Telegram user ID'
+    )
+    topic = models.CharField(
+        max_length=250,
+        verbose_name='Topic'
+    )
+    summary = models.CharField(
+        max_length=1000,
+        verbose_name='Summary'
+    )
+    creation_date = models.DateTimeField(
+        default=timezone.now,
+        verbose_name='Creation date'
+    )
+    last_update = models.DateTimeField(
+        default=timezone.now,
+        verbose_name='Last update'
+    )
+
+    def __str__(self):
+        return f"{self.topic} - {self.summary}"
+
+    class Meta:
+        verbose_name = 'Chat'
+        verbose_name_plural = 'Chats'
 
 
 class Text(models.Model):
@@ -9,9 +40,14 @@ class Text(models.Model):
     username = models.CharField(
         max_length=250,
         null=True,
-        # blank=True,
         verbose_name='Username',
 
+    )
+    chat = models.ForeignKey(
+        Chat,
+        on_delete=models.CASCADE,
+        related_name='texts',
+        verbose_name='Chat'
     )
     request = models.TextField(
         max_length=10000,
@@ -22,6 +58,7 @@ class Text(models.Model):
         verbose_name='Response'
     )
     date = models.DateTimeField(
+        # default=timezone.now,
         auto_now_add=True,
         verbose_name='Date'
     )
@@ -33,12 +70,8 @@ class Text(models.Model):
     )
 
     def __str__(self):
-        return self.text
+        return f"{self.request} - {self.response}"
 
     class Meta:
         verbose_name = 'Text'
         verbose_name_plural = 'Texts'
-
-
-class Chat(models.Model):
-    pass
