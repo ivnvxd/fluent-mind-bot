@@ -8,7 +8,10 @@ from asgiref.sync import sync_to_async
 
 
 def send_action(action: str) -> Callable:
-    """Sends `action` while processing func command."""
+    """
+    Sends `action` while processing func command.
+    Used to add `typing` action while the GPT response is awaited.
+    """
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
@@ -33,7 +36,7 @@ def delete_chat(chat):
 
 
 async def get_topic(request):
-    text = "Summarize your answer as briefly as possible in one short sentence."
+    text = "Summarize your answer in one short title."
     request.append({"role": 'user', "content": text})
 
     response = openai.ChatCompletion.create(
@@ -43,6 +46,21 @@ async def get_topic(request):
     topic = response['choices'][0]['message']['content']
 
     return topic
+
+
+async def get_summary(request):
+    text = "Summarize the conversation in one paragraph."
+    request.append({"role": 'user', "content": text})
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=request[1:]
+    )
+    summary = response['choices'][0]['message']['content']
+
+    print(summary)
+
+    return summary
 
 
 def markdown_code_to_html(text):

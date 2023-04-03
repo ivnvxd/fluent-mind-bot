@@ -7,7 +7,7 @@ from telegram.ext import CallbackContext
 from telegram.constants import ParseMode, ChatAction
 
 from .helpers import send_action, get_topic, save_chat, delete_chat, \
-    markdown_code_to_html
+    markdown_code_to_html, get_summary
 from .database import get_messages_count, get_or_create_chat, \
     get_conversation_history, create_message_entry
 
@@ -46,21 +46,28 @@ async def help(update: Update, context: CallbackContext):
 
 
 async def new(update: Update, context: CallbackContext):
+
+    # Reply to the user immediately
+    text = "Let's start over.\n\n" + \
+           "You can always go back to previous conversations" + \
+           "with the /history command."
+    await update.message.reply_text(text)
+
+    # Process chat data
     telegram_id = update.message.chat.id
     current_chat = await get_or_create_chat(telegram_id)
 
     messages_count = await get_messages_count(telegram_id, current_chat)
 
-    if messages_count == 0:
+    if messages_count > 0:
+        request = await get_conversation_history(telegram_id=telegram_id, chat=current_chat)
+        summary = await get_summary(request)
+        current_chat.summary = summary[:1000]
+        await save_chat(current_chat)
+    else:
         await delete_chat(current_chat)
 
     await get_or_create_chat(telegram_id, create_new_chat=True)
-
-    text = "Let's start over.\n\n" + \
-           "You can always go back to previous conversations" + \
-           "with the /history command."
-
-    await update.message.reply_text(text)
 
 
 async def unknown(update: Update, context: CallbackContext):
@@ -81,7 +88,6 @@ async def echo(update: Update, context: CallbackContext):
 
 @send_action(ChatAction.TYPING)
 async def chat(update: Update, context: CallbackContext):
-
     text = update.message.text
     telegram_id = update.message.chat.id
     username = update.message.from_user.username
@@ -97,15 +103,25 @@ async def chat(update: Update, context: CallbackContext):
     )
 
     answer = response['choices'][0]['message']['content']
-    # usage = response['usage']
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
 
     print(text)
-    # print(usage)
     print()
     print(answer)
 
+    # Send the response message as early as possible
+    html_answer = markdown_code_to_html(answer)
+    print()
+    print(html_answer)
+
+    await context.bot.send_message(
+        chat_id=telegram_id,
+        text=html_answer,
+        parse_mode="HTML",
+    )
+
+    # Process the remaining data
     await create_message_entry(
         chat=chat,
         telegram_id=telegram_id,
@@ -118,19 +134,6 @@ async def chat(update: Update, context: CallbackContext):
 
     chat.last_update = timezone.now()
     await save_chat(chat)
-
-    # print(update.message)
-
-    html_answer = markdown_code_to_html(answer)
-
-    print()
-    print(html_answer)
-
-    await context.bot.send_message(
-        chat_id=telegram_id,
-        text=html_answer,
-        parse_mode="HTML",
-    )
 
     if chat.topic == "":
         request.append({"role": 'assistant', "content": answer})
