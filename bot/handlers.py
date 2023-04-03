@@ -3,10 +3,11 @@ import openai
 from django.utils import timezone
 
 from telegram import Update
-from telegram.ext import CallbackContext, ContextTypes
+from telegram.ext import CallbackContext
 from telegram.constants import ParseMode, ChatAction
 
-from .helpers import send_action, get_first_sentence, save_chat, delete_chat
+from .helpers import send_action, get_topic, save_chat, delete_chat, \
+    markdown_code_to_html
 from .database import get_messages_count, get_or_create_chat, \
     get_conversation_history, create_message_entry
 
@@ -21,13 +22,15 @@ HELP_MESSAGE = """Available commands:
 
 
 @send_action(ChatAction.TYPING)
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update, context: CallbackContext):
     """Start the bot."""
 
-    text = "🤖 Hi! I'm <b>ChatGPT</b> bot " + \
-           "implemented with GPT-3.5 OpenAI API 🤖\n\n" + \
-           HELP_MESSAGE + \
-           "\nAnd now... ask me anything!"
+    text = (
+        "🤖 Hi! I'm <b>ChatGPT</b> bot "
+        "implemented with GPT-3.5 OpenAI API 🤖\n\n"
+        f"{HELP_MESSAGE}\n"
+        "And now... ask me anything!"
+    )
 
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
@@ -94,19 +97,14 @@ async def chat(update: Update, context: CallbackContext):
     )
 
     answer = response['choices'][0]['message']['content']
-    usage = response['usage']
+    # usage = response['usage']
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
 
-    print(request)
-    print(usage)
+    print(text)
+    # print(usage)
+    print()
     print(answer)
-
-    if chat.topic == "" and chat.summary == "":
-        first_sentence = await get_first_sentence(answer)
-        chat.topic = first_sentence[:250]
-        chat.summary = first_sentence[:1000]
-        await save_chat(chat)
 
     await create_message_entry(
         chat=chat,
@@ -121,10 +119,22 @@ async def chat(update: Update, context: CallbackContext):
     chat.last_update = timezone.now()
     await save_chat(chat)
 
-    print(update.message)
+    # print(update.message)
+
+    html_answer = markdown_code_to_html(answer)
+
+    print()
+    print(html_answer)
 
     await context.bot.send_message(
         chat_id=telegram_id,
-        text=answer,
-        parse_mode="Markdown",
+        text=html_answer,
+        parse_mode="HTML",
     )
+
+    if chat.topic == "":
+        request.append({"role": 'assistant', "content": answer})
+        topic = await get_topic(request)
+        chat.topic = topic[:250]
+
+        await save_chat(chat)
