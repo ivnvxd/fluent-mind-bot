@@ -23,7 +23,9 @@ HELP_MESSAGE = """Available commands:
 
 @send_action(ChatAction.TYPING)
 async def start(update: Update, context: CallbackContext):
-    """Start the bot."""
+    """
+    Sends a greeting message and help information when the bot is started.
+    """
 
     text = (
         "🤖 Hi! I'm <b>ChatGPT</b> bot "
@@ -36,7 +38,9 @@ async def start(update: Update, context: CallbackContext):
 
 
 async def help(update: Update, context: CallbackContext):
-    """Show available commands."""
+    """
+    Sends a message with a list of available commands.
+    """
 
     await context.bot.send_message(
         chat_id=update.message.chat_id,
@@ -46,6 +50,10 @@ async def help(update: Update, context: CallbackContext):
 
 
 async def new(update: Update, context: CallbackContext):
+    """
+    Starts a new chat, saves the previous chat if there were any messages,
+    and sets the new chat as the current one.
+    """
 
     # Reply to the user immediately
     text = "Let's start over.\n\n" + \
@@ -60,7 +68,10 @@ async def new(update: Update, context: CallbackContext):
     messages_count = await get_messages_count(telegram_id, current_chat)
 
     if messages_count > 0:
-        request = await get_conversation_history(telegram_id=telegram_id, chat=current_chat)
+        request = await get_conversation_history(
+            telegram_id=telegram_id,
+            chat=current_chat
+        )
         summary = await get_summary(request)
         current_chat.summary = summary[:1000]
         await save_chat(current_chat)
@@ -71,7 +82,9 @@ async def new(update: Update, context: CallbackContext):
 
 
 async def unknown(update: Update, context: CallbackContext):
-    """Return if wrong command entered."""
+    """
+    Sends a message when an unknown command is entered.
+    """
 
     text = "Sorry, I didn't understand that command."
 
@@ -79,15 +92,12 @@ async def unknown(update: Update, context: CallbackContext):
 
 
 @send_action(ChatAction.TYPING)
-async def echo(update: Update, context: CallbackContext):
-    await context.bot.send_message(
-        chat_id=update.message.chat_id,
-        text=update.message.text
-    )
-
-
-@send_action(ChatAction.TYPING)
 async def chat(update: Update, context: CallbackContext):
+    """
+    Processes user input, generates a response using GPT-3.5,
+    and sends the response to the user.
+    """
+
     text = update.message.text
     telegram_id = update.message.chat.id
     username = update.message.from_user.username

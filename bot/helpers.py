@@ -9,8 +9,11 @@ from asgiref.sync import sync_to_async
 
 def send_action(action: str) -> Callable:
     """
-    Sends `action` while processing func command.
-    Used to add `typing` action while the GPT response is awaited.
+    A decorator that sends a specified chat action while processing
+    the wrapped function.
+
+    :param action: The chat action to send.
+    :return: A decorator for the function.
     """
 
     def decorator(func: Callable) -> Callable:
@@ -27,15 +30,31 @@ def send_action(action: str) -> Callable:
 
 @sync_to_async
 def save_chat(chat):
+    """
+    Saves the provided chat instance asynchronously.
+    """
+
     chat.save()
 
 
 @sync_to_async
 def delete_chat(chat):
+    """
+    Deletes the provided chat instance asynchronously.
+    """
+
     chat.delete()
 
 
 async def get_topic(request):
+    """
+    Generates a short sentence describing the topic of the answer.
+
+    :param request: A list of message dictionaries representing
+    the conversation history.
+    :return: A short sentence summarizing the answer's topic.
+    """
+
     text = "Summarize your answer in one short title."
     request.append({"role": 'user', "content": text})
 
@@ -49,6 +68,14 @@ async def get_topic(request):
 
 
 async def get_summary(request):
+    """
+    Generates a summary of the conversation in one paragraph.
+
+    :param request: A list of message dictionaries representing
+    the conversation history.
+    :return: A paragraph summarizing the conversation.
+    """
+
     text = "Summarize the conversation in one paragraph."
     request.append({"role": 'user', "content": text})
 
@@ -64,6 +91,13 @@ async def get_summary(request):
 
 
 def markdown_code_to_html(text):
+    """
+    Converts markdown code blocks to HTML.
+
+    :param text: A string containing markdown code blocks.
+    :return: A string with markdown code blocks replaced by HTML code blocks.
+    """
+
     text = html.escape(text)
 
     triple_code_pattern = re.compile(r'```(.*?)```', re.DOTALL)
