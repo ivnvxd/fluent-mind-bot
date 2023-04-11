@@ -25,7 +25,9 @@ ALLOWED_HOSTS = [
     '0.0.0.0',
     '.railway.app',
     'localhost',
+
     '.ngrok.io',
+    '.ngrok-free.app',
 ]
 
 
