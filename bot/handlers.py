@@ -16,7 +16,7 @@ HELP_MESSAGE = """Available commands:
 🔄 /retry — Regenerate last answer 🚧
 ✨ /new — Start new chat
 📝 /history — Show previous chats 🚧
-💾 /save — Save current chat 🚧
+💾 /save — Save current chat
 ❓ /help — Show help
 """
 
@@ -49,6 +49,7 @@ async def help(update: Update, context: CallbackContext):
     )
 
 
+@send_action(ChatAction.TYPING)
 async def new(update: Update, context: CallbackContext):
     """
     Starts a new chat, saves the previous chat if there were any messages,
@@ -79,6 +80,43 @@ async def new(update: Update, context: CallbackContext):
         await delete_chat(current_chat)
 
     await get_or_create_chat(telegram_id, create_new_chat=True)
+
+
+@send_action(ChatAction.TYPING)
+async def save(update: Update, context: CallbackContext):
+    """
+    Generates a new summary and title for the current chat,
+    and stores it in the database.
+    """
+
+    # Reply to the user immediately
+    text = "Saving the chat..."
+    await update.message.reply_text(text)
+
+    # Process chat data
+    telegram_id = update.message.chat.id
+    current_chat = await get_or_create_chat(telegram_id)
+
+    messages_count = await get_messages_count(telegram_id, current_chat)
+
+    if messages_count > 0:
+        request = await get_conversation_history(
+            telegram_id=telegram_id,
+            chat=current_chat
+        )
+        summary = await get_summary(request)
+        current_chat.summary = summary[:1000]
+
+        title = await get_topic(request)
+        current_chat.topic = title[:250]
+
+        await save_chat(current_chat)
+
+        text = f"Chat saved: {title}"
+    else:
+        text = "There are no messages in the current chat to save."
+
+    await update.message.reply_text(text)
 
 
 async def unknown(update: Update, context: CallbackContext):
