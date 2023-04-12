@@ -1,10 +1,19 @@
 import openai
 import re
 import html
+import tiktoken
 
 from functools import wraps
 from typing import Callable
 from asgiref.sync import sync_to_async
+
+from .database import get_message_objects
+
+
+MAX_TOKENS = 4096
+TOKENS_BUFFER = 100
+
+system = {"role": "system", "content": "You are a helpful assistant."}
 
 
 def send_action(action: str) -> Callable:
@@ -55,7 +64,7 @@ async def get_topic(request):
     :return: A short sentence summarizing the answer's topic.
     """
 
-    text = "Summarize your answer in one short title."
+    text = "Summarize your answer in one very short title."
     request.append({"role": 'user', "content": text})
 
     response = openai.ChatCompletion.create(
@@ -76,7 +85,7 @@ async def get_summary(request):
     :return: A paragraph summarizing the conversation.
     """
 
-    text = "Summarize the conversation in one paragraph."
+    text = "Summarize the conversation in one short paragraph."
     request.append({"role": 'user', "content": text})
 
     response = openai.ChatCompletion.create(
@@ -84,8 +93,6 @@ async def get_summary(request):
         messages=request[1:]
     )
     summary = response['choices'][0]['message']['content']
-
-    print(summary)
 
     return summary
 
@@ -107,3 +114,71 @@ def markdown_code_to_html(text):
     text = single_code_pattern.sub(r'<code>\1</code>', text)
 
     return text
+
+
+def num_tokens_from_string(string: str) -> int:
+    """
+    Returns the number of tokens in a text string.
+
+    :param string: A string to be tokenized.
+    :return: Number of tokens in the string.
+    """
+    encoding = tiktoken.get_encoding("cl100k_base")
+    num_tokens = len(encoding.encode(string))
+
+    return num_tokens
+
+
+def truncate_messages(messages, text):
+    """
+    Truncates the messages based on the token limit.
+
+    :param messages: A list of message objects to truncate.
+    :param text: The last message from the user.
+    :return: A list of truncated message objects.
+    """
+
+    truncated_messages = []
+    total_tokens = 0
+
+    for message in messages:
+        system_tokens = num_tokens_from_string(system['content'])
+        request_tokens = num_tokens_from_string(message.request)
+        response_tokens = num_tokens_from_string(message.response)
+        text_tokens = num_tokens_from_string(text)
+
+        temp_tokens = system_tokens + text_tokens + TOKENS_BUFFER
+        message_tokens = request_tokens + response_tokens
+
+        if total_tokens + temp_tokens + message_tokens <= MAX_TOKENS:
+            truncated_messages.append(message)
+            total_tokens += message_tokens
+        else:
+            break
+
+    return truncated_messages
+
+
+@sync_to_async
+def get_conversation_history(telegram_id, chat, text=""):
+    """
+    Gets the conversation history of a specific chat.
+
+    :param telegram_id: The user's Telegram ID.
+    :param chat: The Chat instance to get the conversation history from.
+    :param text: The last message from the user.
+    :return: A list of message dictionaries representing
+    the conversation history.
+    """
+
+    messages = get_message_objects(telegram_id, chat)
+    truncated_messages = truncate_messages(messages, text)
+
+    request = [system]
+    for message in reversed(truncated_messages):
+        request.extend([
+            {"role": "user", "content": message.request},
+            {"role": "assistant", "content": message.response}
+        ])
+
+    return request
