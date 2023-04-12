@@ -7,9 +7,9 @@ from telegram.ext import CallbackContext
 from telegram.constants import ParseMode, ChatAction
 
 from .helpers import send_action, get_topic, save_chat, delete_chat, \
-    markdown_code_to_html, get_summary
+    get_summary, get_conversation_history
 from .database import get_messages_count, get_or_create_chat, \
-    get_conversation_history, create_message_entry
+    create_message_entry
 
 
 HELP_MESSAGE = """Available commands:
@@ -103,7 +103,7 @@ async def chat(update: Update, context: CallbackContext):
     username = update.message.from_user.username
 
     chat = await get_or_create_chat(telegram_id)
-    request = await get_conversation_history(telegram_id=telegram_id, chat=chat)
+    request = await get_conversation_history(telegram_id, chat, text)
 
     request.append({"role": 'user', "content": text})
 
@@ -116,19 +116,15 @@ async def chat(update: Update, context: CallbackContext):
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
 
-    print(text)
+    print('request:', text)
     print()
-    print(answer)
+    print('answer:', answer)
 
     # Send the response message as early as possible
-    html_answer = markdown_code_to_html(answer)
-    print()
-    print(html_answer)
-
     await context.bot.send_message(
         chat_id=telegram_id,
-        text=html_answer,
-        parse_mode="HTML",
+        text=answer,
+        parse_mode="Markdown",
     )
 
     # Process the remaining data
