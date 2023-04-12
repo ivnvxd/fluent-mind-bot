@@ -7,13 +7,13 @@ from telegram.ext import CallbackContext
 from telegram.constants import ParseMode, ChatAction
 
 from .helpers import send_action, get_topic, save_chat, delete_chat, \
-    get_summary, get_conversation_history
+    get_summary, get_conversation_history, save_text_entry
 from .database import get_messages_count, get_or_create_chat, \
-    create_message_entry
+    create_message_entry, get_last_text_entry
 
 
 HELP_MESSAGE = """Available commands:
-🔄 /retry — Regenerate last answer 🚧
+🔄 /retry — Regenerate last answer
 ✨ /new — Start new chat
 📝 /history — Show previous chats 🚧
 💾 /save — Save current chat
@@ -185,3 +185,60 @@ async def chat(update: Update, context: CallbackContext):
         chat.topic = topic[:250]
 
         await save_chat(chat)
+
+
+@send_action(ChatAction.TYPING)
+async def retry(update: Update, context: CallbackContext):
+    """
+    Retries the last user's request with the same conversation history.
+    """
+
+    telegram_id = update.message.chat.id
+    chat = await get_or_create_chat(telegram_id)
+
+    messages_count = await get_messages_count(telegram_id, chat)
+    if messages_count == 0:
+        text = "There is nothing to retry."
+        await update.message.reply_text(text)
+        return
+
+    request = await get_conversation_history(telegram_id, chat)
+
+    # Find the last user message in the conversation history
+    last_user_message = None
+    for message in reversed(request):
+        if message["role"] == "user":
+            last_user_message = message
+            break
+
+    if last_user_message is None:
+        text = "There is no user message to retry."
+        await update.message.reply_text(text)
+        return
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=request
+    )
+
+    answer = response['choices'][0]['message']['content']
+    completion_tokens = response['usage']['completion_tokens']
+    prompt_tokens = response['usage']['prompt_tokens']
+
+    print('request:', last_user_message['content'])
+    print()
+    print('answer:', answer)
+
+    # Send the response message
+    await context.bot.send_message(
+        chat_id=telegram_id,
+        text=answer,
+        parse_mode="Markdown",
+    )
+
+    # Update the last message's response in the database
+    last_text_entry = await get_last_text_entry(telegram_id, chat)
+    last_text_entry.response = answer
+    last_text_entry.completion_tokens = completion_tokens
+    last_text_entry.prompt_tokens = prompt_tokens
+    await save_text_entry(last_text_entry)

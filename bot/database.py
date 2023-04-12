@@ -63,3 +63,20 @@ def get_message_objects(telegram_id, chat):
     ).order_by('-date')
 
     return messages
+
+
+@sync_to_async
+def get_last_text_entry(telegram_id, chat):
+    """
+    Gets the last text entry for a specific chat.
+
+    :param telegram_id: The user's Telegram ID.
+    :param chat: The Chat instance to get the last text entry from.
+    :return: The last Text instance.
+    """
+
+    last_text_entry = Text.objects.filter(
+        telegram_id=telegram_id, chat=chat
+    ).order_by('-date').first()
+
+    return last_text_entry

@@ -182,3 +182,12 @@ def get_conversation_history(telegram_id, chat, text=""):
         ])
 
     return request
+
+
+@sync_to_async
+def save_text_entry(text_entry):
+    """
+    Saves the provided text entry instance asynchronously.
+    """
+
+    text_entry.save()
