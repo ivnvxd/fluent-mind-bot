@@ -1,5 +1,3 @@
-import openai
-
 from django.utils import timezone
 
 from telegram import Update
@@ -7,7 +5,7 @@ from telegram.ext import CallbackContext
 from telegram.constants import ParseMode, ChatAction
 
 from .helpers import send_action, get_topic, save_chat, delete_chat, \
-    get_summary, get_conversation_history, save_text_entry
+    get_summary, get_conversation_history, save_text_entry, call_openai_api
 from .database import get_messages_count, get_or_create_chat, \
     create_message_entry, get_last_text_entry
 
@@ -145,10 +143,7 @@ async def chat(update: Update, context: CallbackContext):
 
     request.append({"role": 'user', "content": text})
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=request
-    )
+    response = await call_openai_api(request)
 
     answer = response['choices'][0]['message']['content']
     completion_tokens = response['usage']['completion_tokens']
@@ -216,18 +211,14 @@ async def retry(update: Update, context: CallbackContext):
         await update.message.reply_text(text)
         return
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=request
-    )
+    response = await call_openai_api(request)
 
     answer = response['choices'][0]['message']['content']
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
 
     print('request:', last_user_message['content'])
-    print()
-    print('answer:', answer)
+    print('response:', answer)
 
     # Send the response message
     await context.bot.send_message(

@@ -37,6 +37,14 @@ def send_action(action: str) -> Callable:
     return decorator
 
 
+async def call_openai_api(request):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=request
+    )
+    return response
+
+
 @sync_to_async
 def save_chat(chat):
     """
@@ -67,10 +75,7 @@ async def get_topic(request):
     text = "Summarize your answer in one very short title."
     request.append({"role": 'user', "content": text})
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=request[1:]
-    )
+    response = call_openai_api(request[1:])
     topic = response['choices'][0]['message']['content']
 
     return topic
@@ -88,10 +93,7 @@ async def get_summary(request):
     text = "Summarize the conversation in one short paragraph."
     request.append({"role": 'user', "content": text})
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=request[1:]
-    )
+    response = call_openai_api(request[1:])
     summary = response['choices'][0]['message']['content']
 
     return summary
