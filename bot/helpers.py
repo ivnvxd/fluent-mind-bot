@@ -75,8 +75,10 @@ async def get_topic(request):
     text = "Summarize your answer in one very short title."
     request.append({"role": 'user', "content": text})
 
-    response = call_openai_api(request[1:])
+    response = await call_openai_api(request[1:])
     topic = response['choices'][0]['message']['content']
+
+    print("topic:", topic)
 
     return topic
 
@@ -93,8 +95,10 @@ async def get_summary(request):
     text = "Summarize the conversation in one short paragraph."
     request.append({"role": 'user', "content": text})
 
-    response = call_openai_api(request[1:])
+    response = await call_openai_api(request[1:])
     summary = response['choices'][0]['message']['content']
+
+    print("summary:", summary)
 
     return summary
 
