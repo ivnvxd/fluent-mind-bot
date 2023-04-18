@@ -27,7 +27,7 @@ class Chat(models.Model):
     )
 
     def __str__(self):
-        return f"{self.topic} - {self.summary}"
+        return f"{self.topic}"
 
     class Meta:
         verbose_name = 'Chat'
