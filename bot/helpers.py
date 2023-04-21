@@ -1,6 +1,4 @@
 import openai
-import re
-import html
 import tiktoken
 
 from functools import wraps
@@ -63,6 +61,15 @@ def delete_chat(chat):
     chat.delete()
 
 
+@sync_to_async
+def save_text_entry(text_entry):
+    """
+    Saves the provided text entry instance asynchronously.
+    """
+
+    text_entry.save()
+
+
 async def get_topic(request):
     """
     Generates a short sentence describing the topic of the answer.
@@ -101,25 +108,6 @@ async def get_summary(request):
     print("summary:", summary)
 
     return summary
-
-
-def markdown_code_to_html(text):
-    """
-    Converts markdown code blocks to HTML.
-
-    :param text: A string containing markdown code blocks.
-    :return: A string with markdown code blocks replaced by HTML code blocks.
-    """
-
-    text = html.escape(text)
-
-    triple_code_pattern = re.compile(r'```(.*?)```', re.DOTALL)
-    text = triple_code_pattern.sub(r'<pre><code>\1</code></pre>', text)
-
-    single_code_pattern = re.compile(r'`([^`]+)`')
-    text = single_code_pattern.sub(r'<code>\1</code>', text)
-
-    return text
 
 
 def num_tokens_from_string(string: str) -> int:
@@ -188,12 +176,3 @@ def get_conversation_history(telegram_id, chat, text=""):
         ])
 
     return request
-
-
-@sync_to_async
-def save_text_entry(text_entry):
-    """
-    Saves the provided text entry instance asynchronously.
-    """
-
-    text_entry.save()
