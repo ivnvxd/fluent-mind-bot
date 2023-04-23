@@ -28,6 +28,7 @@ def send_action(action: str) -> Callable:
         async def command_func(update, context, *args, **kwargs):
             await context.bot.send_chat_action(
                 chat_id=update.effective_message.chat_id,
+                # chat_id=update.message.chat_id,
                 action=action
             )
             return await func(update, context, *args, **kwargs)
@@ -79,7 +80,8 @@ async def get_topic(request):
     :return: A short sentence summarizing the answer's topic.
     """
 
-    text = "Summarize your answer in one very short title."
+    # text = "Summarize the conversation in one very short title."
+    text = "Title the conversation in one short sentence."
     request.append({"role": 'user', "content": text})
 
     response = await call_openai_api(request[1:])
@@ -99,7 +101,10 @@ async def get_summary(request):
     :return: A paragraph summarizing the conversation.
     """
 
-    text = "Summarize the conversation in one short paragraph."
+    text = (
+        "Summarize the conversation in one short paragraph. "
+        "Don't use introductory words, just convey the meaning."
+    )
     request.append({"role": 'user', "content": text})
 
     response = await call_openai_api(request[1:])

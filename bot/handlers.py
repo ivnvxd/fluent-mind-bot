@@ -56,7 +56,7 @@ async def new(update: Update, context: CallbackContext):
 
     # Reply to the user immediately
     text = "Let's start over.\n\n" + \
-           "You can always go back to previous conversations" + \
+           "You can always go back to previous conversations " + \
            "with the /history command."
     await update.message.reply_text(text)
 
