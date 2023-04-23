@@ -19,8 +19,6 @@
                 <th>Request</th>
                 <th>Response</th>
                 <th>Date</th>
-                <th>Completion tokens</th>
-                <th>Prompt tokens</th>
             </tr>
         </thead>
 
@@ -35,8 +33,6 @@
                         <td>{{ text.request }}</td>
                         <td>{{ text.response }}</td>
                         <td>{{ text.date|date:"d.m.Y H:i" }}</td>
-                        <td>{{ text.completion_tokens }}</td>
-                        <td>{{ text.prompt_tokens }}</td>
                     </tr>
                 {% endfor %}
             {% endif %}
