@@ -1,5 +1,5 @@
-from asynctest import TestCase, CoroutineMock
-from unittest.mock import MagicMock
+from unittest import IsolatedAsyncioTestCase
+from unittest.mock import AsyncMock, MagicMock
 from telegram import Update, Message, Bot
 from telegram.ext import CallbackContext
 from bot import handlers
@@ -11,9 +11,6 @@ class AsyncMagicMock(MagicMock):
 
 
 class TestMessage(Message):
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-
     async def reply_text(self, *args, **kwargs):
         pass
 
@@ -28,15 +25,9 @@ class CallbackContextProxy:
             return self._bot
         return getattr(self._callback_context, name)
 
-    # def __setattr__(self, name, value):
-    #     if name in ('_callback_context', '_bot'):
-    #         super().__setattr__(name, value)
-    #     else:
-    #         setattr(self._callback_context, name, value)
 
-
-class TestHandlers(TestCase):
-    async def setUp(self):
+class TestHandlers(IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
         message_data = {
             'message_id': 1,
             'from': {'id': 1, 'first_name': 'Test', 'is_bot': False},
@@ -48,28 +39,28 @@ class TestHandlers(TestCase):
         self.update = Update(update_id=1, message=message)
         bot_instance = AsyncMagicMock(spec=Bot)
         self.context = CallbackContextProxy(
-            bot_instance, AsyncMagicMock(), MagicMock()
+            bot_instance, AsyncMock(), MagicMock()
         )
 
-        handlers.call_openai_api = CoroutineMock(
+        handlers.call_openai_api = AsyncMock(
             return_value={
                 'choices': [{'message': {'content': 'Test answer'}}],
                 'usage': {'completion_tokens': 5, 'prompt_tokens': 10},
             }
         )
-        handlers.get_topic = CoroutineMock(return_value="Test topic")
-        handlers.get_summary = CoroutineMock(return_value="Test summary")
-        handlers.get_or_create_chat = CoroutineMock(
-            return_value=CoroutineMock()
+        handlers.get_topic = AsyncMock(return_value="Test topic")
+        handlers.get_summary = AsyncMock(return_value="Test summary")
+        handlers.get_or_create_chat = AsyncMock(
+            return_value=AsyncMock()
         )
-        handlers.get_messages_count = CoroutineMock(return_value=5)
-        handlers.get_conversation_history = CoroutineMock(return_value=[])
-        handlers.save_chat = CoroutineMock()
-        handlers.delete_chat = CoroutineMock()
-        handlers.create_message_entry = CoroutineMock()
-        handlers.save_text_entry = CoroutineMock()
-        handlers.get_last_text_entry = CoroutineMock(
-            return_value=CoroutineMock()
+        handlers.get_messages_count = AsyncMock(return_value=5)
+        handlers.get_conversation_history = AsyncMock(return_value=[])
+        handlers.save_chat = AsyncMock()
+        handlers.delete_chat = AsyncMock()
+        handlers.create_message_entry = AsyncMock()
+        handlers.save_text_entry = AsyncMock()
+        handlers.get_last_text_entry = AsyncMock(
+            return_value=AsyncMock()
         )
 
     async def test_start(self):
@@ -87,7 +78,6 @@ class TestHandlers(TestCase):
         handlers.get_messages_count.assert_called()
         handlers.get_conversation_history.assert_called()
         handlers.save_chat.assert_called()
-        # handlers.delete_chat.assert_called()
 
     async def test_save(self):
         await handlers.save(self.update, self.context)
@@ -102,9 +92,8 @@ class TestHandlers(TestCase):
         self.context.bot.send_message.assert_called_once()
 
     async def test_chat(self):
-        # self.update.message.text = "Test question"
         await handlers.chat(self.update, self.context)
-        # self.context.bot.send_message.assert_called()
+        self.context.bot.send_message.assert_called()
         handlers.get_or_create_chat.assert_called()
         handlers.get_conversation_history.assert_called()
         handlers.call_openai_api.assert_called()
