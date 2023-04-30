@@ -4,6 +4,9 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode, ChatAction
 
+import bot.helpers
+# import bot.database
+
 from .helpers import send_action, get_topic, save_chat, delete_chat, \
     get_summary, get_conversation_history, save_text_entry, call_openai_api
 from .database import get_messages_count, get_or_create_chat, \
@@ -233,3 +236,24 @@ async def retry(update: Update, context: CallbackContext):
     last_text_entry.completion_tokens = completion_tokens
     last_text_entry.prompt_tokens = prompt_tokens
     await save_text_entry(last_text_entry)
+
+
+async def echo(update: Update, context: CallbackContext):
+    # reply = update.message.text
+    message_text = ' '.join(context.args)
+    await update.message.reply_text(message_text)
+
+
+@send_action(ChatAction.TYPING)
+async def img(update: Update, context: CallbackContext):
+    request = update.message.text
+
+    response = await bot.helpers.openai_image_create(request)
+
+    reply = None
+    if not update.message.text:
+        reply = "Usage: /img <prompt>"
+        # await update.message.reply_text(reply)
+
+    image_url = response['data'][0]['url']
+    await update.message.reply_photo(photo=image_url, caption=reply)

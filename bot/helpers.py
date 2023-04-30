@@ -44,6 +44,15 @@ async def call_openai_api(request):
     return response
 
 
+async def openai_image_create(request):
+    response = openai.Image.create(
+        prompt=request,
+        n=1,
+        size="1024x1024"
+    )
+    return response
+
+
 @sync_to_async
 def save_chat(chat):
     """
