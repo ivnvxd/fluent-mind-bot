@@ -4,12 +4,12 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telegram.constants import ParseMode, ChatAction
 
-import bot.helpers
-# import bot.database
+# from bot import helpers
+# from bot import database
 
-from .helpers import send_action, get_topic, save_chat, delete_chat, \
+from bot.helpers import send_action, get_topic, save_chat, delete_chat, \
     get_summary, get_conversation_history, save_text_entry, call_openai_api
-from .database import get_messages_count, get_or_create_chat, \
+from bot.database import get_messages_count, get_or_create_chat, \
     create_message_entry, get_last_text_entry
 
 
@@ -236,12 +236,6 @@ async def retry(update: Update, context: CallbackContext):
     last_text_entry.completion_tokens = completion_tokens
     last_text_entry.prompt_tokens = prompt_tokens
     await save_text_entry(last_text_entry)
-
-
-async def echo(update: Update, context: CallbackContext):
-    # reply = update.message.text
-    message_text = ' '.join(context.args)
-    await update.message.reply_text(message_text)
 
 
 @send_action(ChatAction.TYPING)

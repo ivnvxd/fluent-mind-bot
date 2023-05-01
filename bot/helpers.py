@@ -5,7 +5,7 @@ from functools import wraps
 from typing import Callable
 from asgiref.sync import sync_to_async
 
-from .database import get_message_objects
+from bot import database
 
 
 MAX_TOKENS = 4096
@@ -179,7 +179,7 @@ def get_conversation_history(telegram_id, chat, text=""):
     the conversation history.
     """
 
-    messages = get_message_objects(telegram_id, chat)
+    messages = database.get_message_objects(telegram_id, chat)
     truncated_messages = truncate_messages(messages, text)
 
     request = [system]
