@@ -8,7 +8,8 @@ from telegram.constants import ParseMode, ChatAction
 # from bot import database
 
 from bot.helpers import send_action, get_topic, save_chat, delete_chat, \
-    get_summary, get_conversation_history, save_text_entry, call_openai_api
+    get_summary, get_conversation_history, save_text_entry, call_openai_api, \
+    openai_image_create
 from bot.database import get_messages_count, get_or_create_chat, \
     create_message_entry, get_last_text_entry
 
@@ -242,7 +243,7 @@ async def retry(update: Update, context: CallbackContext):
 async def img(update: Update, context: CallbackContext):
     request = update.message.text
 
-    response = await bot.helpers.openai_image_create(request)
+    response = await openai_image_create(request)
 
     reply = None
     if not update.message.text:
