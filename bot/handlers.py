@@ -9,7 +9,7 @@ from telegram.constants import ParseMode, ChatAction
 
 from bot.helpers import send_action, get_topic, save_chat, delete_chat, \
     get_summary, get_conversation_history, save_text_entry, call_openai_api, \
-    openai_image_create
+    openai_image_create, logger
 from bot.database import get_messages_count, get_or_create_chat, \
     create_message_entry, get_last_text_entry
 
@@ -22,6 +22,13 @@ HELP_MESSAGE = """Available commands:
 ❓ /help — Show help
 """
 
+START_MESSAGE = (
+    "🤖 Hi! I'm <b>ChatGPT</b> bot "
+    "implemented with GPT-3.5 OpenAI API 🤖\n\n"
+    f"{HELP_MESSAGE}\n"
+    "And now... ask me anything!"
+)
+
 
 @send_action(ChatAction.TYPING)
 async def start(update: Update, context: CallbackContext):
@@ -29,12 +36,7 @@ async def start(update: Update, context: CallbackContext):
     Sends a greeting message and help information when the bot is started.
     """
 
-    text = (
-        "🤖 Hi! I'm <b>ChatGPT</b> bot "
-        "implemented with GPT-3.5 OpenAI API 🤖\n\n"
-        f"{HELP_MESSAGE}\n"
-        "And now... ask me anything!"
-    )
+    text = START_MESSAGE
 
     await update.message.reply_text(text, parse_mode=ParseMode.HTML)
 
@@ -153,11 +155,9 @@ async def chat(update: Update, context: CallbackContext):
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
 
-    print('request:', text)
-    print()
-    print('answer:', answer)
-    print()
-    print('response:', response)
+    logger.info('request: %s', text)
+    logger.info('answer: %s', answer)
+    logger.debug('response: %s', response)
 
     # Send the response message as early as possible
     await context.bot.send_message(
@@ -223,8 +223,8 @@ async def retry(update: Update, context: CallbackContext):
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
 
-    print('request:', last_user_message['content'])
-    print('response:', answer)
+    logger.info("response: %s", last_user_message['content'])
+    logger.info("response: %s", answer)
 
     # Send the response message
     await context.bot.send_message(
@@ -251,13 +251,14 @@ async def img(update: Update, context: CallbackContext):
 
     if not text:
         answer = "Usage: /img <prompt>"
+        logger.warning(answer)
         await update.message.reply_text(answer)
     else:
         request = text
 
         response = await openai_image_create(request)
 
-        print('response:', response)
+        logger.info("response: %s", response)
 
         # created = response['created']
         # aware_datetime = datetime.fromtimestamp(unix_epoch_time, pytz.UTC)
@@ -273,3 +274,7 @@ async def img(update: Update, context: CallbackContext):
             # response=answer,
             content_type="img",
         )
+
+
+def error_handler(update: Update, context: CallbackContext) -> None:
+    logger.error('Update "%s" caused error "%s"', update, context.error)

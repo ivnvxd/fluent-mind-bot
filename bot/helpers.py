@@ -1,6 +1,8 @@
 import openai
 import tiktoken
+import logging
 
+from colorlog import ColoredFormatter
 from functools import wraps
 from typing import Callable
 from asgiref.sync import sync_to_async
@@ -12,6 +14,36 @@ MAX_TOKENS = 4096
 TOKENS_BUFFER = 100
 
 system = {"role": "system", "content": "You are a helpful assistant."}
+
+
+def setup_colored_logging(level=logging.DEBUG):
+    formatter = ColoredFormatter(
+        "%(log_color)s%(asctime)s - %(message)s",
+        datefmt=None,
+        reset=True,
+        log_colors={
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'red,bg_white',
+        },
+        secondary_log_colors={},
+        style='%'
+    )
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(level)
+    logger.addHandler(console_handler)
+    logger.propagate = False
+
+    return logger
+
+
+logger = setup_colored_logging()
 
 
 def send_action(action: str) -> Callable:
@@ -96,7 +128,7 @@ async def get_topic(request):
     response = await call_openai_api(request[1:])
     topic = response['choices'][0]['message']['content']
 
-    print("topic:", topic)
+    logger.info('topic: %s', topic)
 
     return topic
 
@@ -119,7 +151,7 @@ async def get_summary(request):
     response = await call_openai_api(request[1:])
     summary = response['choices'][0]['message']['content']
 
-    print("summary:", summary)
+    logger.info('summary: %s', summary)
 
     return summary
 

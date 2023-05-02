@@ -30,6 +30,7 @@ application.add_handler(MessageHandler(
     handlers.chat)
                         )
 application.add_handler(MessageHandler(filters.COMMAND, handlers.unknown))
+application.add_error_handler(handlers.error_handler)
 
 
 async def run(data):
