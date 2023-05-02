@@ -60,15 +60,21 @@ class Text(models.Model):
         verbose_name='Response'
     )
     date = models.DateTimeField(
-        # default=timezone.now,
-        auto_now_add=True,
+        default=timezone.now,
+        # auto_now_add=True,
         verbose_name='Date'
     )
     completion_tokens = models.IntegerField(
-        verbose_name='Completion tokens'
+        verbose_name='Completion tokens',
+        null=True
     )
     prompt_tokens = models.IntegerField(
-        verbose_name='Prompt tokens'
+        verbose_name='Prompt tokens',
+        null=True
+    )
+    total_tokens = models.IntegerField(
+        verbose_name='Total tokens',
+        null=True
     )
 
     def __str__(self):

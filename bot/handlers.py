@@ -156,6 +156,8 @@ async def chat(update: Update, context: CallbackContext):
     print('request:', text)
     print()
     print('answer:', answer)
+    print()
+    print('response:', response)
 
     # Send the response message as early as possible
     await context.bot.send_message(
@@ -241,14 +243,33 @@ async def retry(update: Update, context: CallbackContext):
 
 @send_action(ChatAction.TYPING)
 async def img(update: Update, context: CallbackContext):
-    request = update.message.text
+    text = ' '.join(context.args)
+    telegram_id = update.message.chat.id
+    username = update.message.from_user.username
 
-    response = await openai_image_create(request)
+    chat = await get_or_create_chat(telegram_id)
 
-    reply = None
-    if not update.message.text:
-        reply = "Usage: /img <prompt>"
-        # await update.message.reply_text(reply)
+    if not text:
+        answer = "Usage: /img <prompt>"
+        text = update.message.text
+        await update.message.reply_text(answer)
+    else:
+        request = text
 
-    image_url = response['data'][0]['url']
-    await update.message.reply_photo(photo=image_url, caption=reply)
+        response = await openai_image_create(request)
+
+        print('response:', response)
+
+        # created = response['created']
+        # aware_datetime = datetime.fromtimestamp(unix_epoch_time, pytz.UTC)
+        image_url = response['data'][0]['url']
+        answer = image_url
+        await update.message.reply_photo(photo=image_url, caption=request)
+
+    await create_message_entry(
+        chat=chat,
+        telegram_id=telegram_id,
+        username=username,
+        request=text,
+        response=answer,
+    )
