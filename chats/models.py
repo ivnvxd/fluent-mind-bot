@@ -35,6 +35,11 @@ class Chat(models.Model):
 
 
 class Text(models.Model):
+    CONTENT_TYPE_CHOICES = [
+        ('text', 'Text'),
+        ('img', 'Image'),
+    ]
+    
     telegram_id = models.CharField(
         max_length=25,
         verbose_name='Telegram user ID'
@@ -58,6 +63,12 @@ class Text(models.Model):
     response = models.TextField(
         max_length=10000,
         verbose_name='Response'
+    )
+    content_type = models.CharField(
+        max_length=4,
+        choices=CONTENT_TYPE_CHOICES,
+        default='text',
+        verbose_name='Content Type'
     )
     date = models.DateTimeField(
         default=timezone.now,

@@ -31,7 +31,11 @@ def get_messages_count(telegram_id, chat):
     Gets the number of messages in the specified chat.
     """
 
-    count = Text.objects.filter(telegram_id=telegram_id, chat=chat).count()
+    count = Text.objects.filter(
+        telegram_id=telegram_id,
+        chat=chat
+        ).count()
+
     return count
 
 
@@ -45,7 +49,11 @@ def create_message_entry(chat, **kwargs):
     :return: The created Text instance.
     """
 
-    text = Text.objects.create(chat=chat, **kwargs)
+    text = Text.objects.create(
+        chat=chat,
+        **kwargs
+        )
+
     return text
 
 
@@ -59,7 +67,9 @@ def get_message_objects(telegram_id, chat):
     """
 
     messages = Text.objects.filter(
-        telegram_id=telegram_id, chat=chat
+        telegram_id=telegram_id,
+        chat=chat,
+        content_type='text'
     ).order_by('-date')
 
     return messages
@@ -76,7 +86,9 @@ def get_last_text_entry(telegram_id, chat):
     """
 
     last_text_entry = Text.objects.filter(
-        telegram_id=telegram_id, chat=chat
+        telegram_id=telegram_id,
+        chat=chat,
+        content_type='text'
     ).order_by('-date').first()
 
     return last_text_entry

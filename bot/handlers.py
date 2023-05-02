@@ -251,7 +251,6 @@ async def img(update: Update, context: CallbackContext):
 
     if not text:
         answer = "Usage: /img <prompt>"
-        text = update.message.text
         await update.message.reply_text(answer)
     else:
         request = text
@@ -263,13 +262,14 @@ async def img(update: Update, context: CallbackContext):
         # created = response['created']
         # aware_datetime = datetime.fromtimestamp(unix_epoch_time, pytz.UTC)
         image_url = response['data'][0]['url']
-        answer = image_url
+        # answer = image_url
         await update.message.reply_photo(photo=image_url, caption=request)
 
-    await create_message_entry(
-        chat=chat,
-        telegram_id=telegram_id,
-        username=username,
-        request=text,
-        response=answer,
-    )
+        await create_message_entry(
+            chat=chat,
+            telegram_id=telegram_id,
+            username=username,
+            request=text,
+            # response=answer,
+            content_type="img",
+        )
