@@ -17,6 +17,13 @@ system = {"role": "system", "content": "You are a helpful assistant."}
 
 
 def setup_colored_logging(level=logging.DEBUG):
+    """
+    Set up colored logging with the given logging level.
+
+    :param level: The logging level to set up. Default is logging.DEBUG.
+    :return: The logger object.
+    """
+
     formatter = ColoredFormatter(
         "%(log_color)s%(asctime)s - %(message)s",
         datefmt=None,
@@ -38,7 +45,7 @@ def setup_colored_logging(level=logging.DEBUG):
     logger = logging.getLogger(__name__)
     logger.setLevel(level)
     logger.addHandler(console_handler)
-    logger.propagate = False
+    # logger.propagate = False
 
     return logger
 
@@ -69,6 +76,13 @@ def send_action(action: str) -> Callable:
 
 
 async def call_openai_api(request):
+    """
+    Calls the OpenAI API for chat completion using the provided `request`.
+
+    :param request: A list of strings representing the chat history.
+    return: A dictionary containing the response from the OpenAI API.
+    """
+
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=request
@@ -77,6 +91,13 @@ async def call_openai_api(request):
 
 
 async def openai_image_create(request):
+    """
+    Creates an image using OpenAI's API.
+
+    :param request: The prompt to generate the image from.
+    return: The response from OpenAI's API, containing the generated image.
+    """
+
     response = openai.Image.create(
         prompt=request,
         n=1,
@@ -194,6 +215,7 @@ def truncate_messages(messages, text):
             truncated_messages.append(message)
             total_tokens += message_tokens
         else:
+            logger.debug('Truncated messages from: %s', message)
             break
 
     return truncated_messages

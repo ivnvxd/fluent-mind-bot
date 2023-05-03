@@ -14,16 +14,19 @@ from bot.database import get_messages_count, get_or_create_chat, \
     create_message_entry, get_last_text_entry
 
 
-HELP_MESSAGE = """Available commands:
-🔄 /retry — Regenerate last answer
-✨ /new — Start new chat
-📝 /history — Show previous chats 🚧
-💾 /save — Save current chat
-❓ /help — Show help
-"""
+HELP_MESSAGE = (
+    "Available commands:\n"
+    "🔄 /retry — Regenerate last answer\n"
+    "✨ /new — Start new chat\n"
+    "🏞️ /img _<prompt>_ — Generate image\n"
+    "❓ /help — Show help\n"
+)
+
+# 💾 /save — Save current chat
+# 📝 /history — Show previous chats 🚧
 
 START_MESSAGE = (
-    "🤖 Hi! I'm <b>ChatGPT</b> bot "
+    "🤖 Hi! I'm *ChatGPT* bot "
     "implemented with GPT-3.5 OpenAI API 🤖\n\n"
     f"{HELP_MESSAGE}\n"
     "And now... ask me anything!"
@@ -36,9 +39,17 @@ async def start(update: Update, context: CallbackContext):
     Sends a greeting message and help information when the bot is started.
     """
 
-    text = START_MESSAGE
+    logger.debug(
+        "Bot started. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
 
-    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+    await context.bot.send_message(
+        chat_id=update.message.chat_id,
+        text=START_MESSAGE,
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 
 async def help(update: Update, context: CallbackContext):
@@ -46,10 +57,16 @@ async def help(update: Update, context: CallbackContext):
     Sends a message with a list of available commands.
     """
 
+    logger.debug(
+        "Help message. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
+
     await context.bot.send_message(
         chat_id=update.message.chat_id,
         text=HELP_MESSAGE,
-        parse_mode=ParseMode.HTML
+        parse_mode=ParseMode.MARKDOWN
     )
 
 
@@ -60,10 +77,16 @@ async def new(update: Update, context: CallbackContext):
     and sets the new chat as the current one.
     """
 
+    logger.debug(
+        "New chat. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
+
     # Reply to the user immediately
-    text = "Let's start over.\n\n" + \
-           "You can always go back to previous conversations " + \
-           "with the /history command."
+    text = "Let's start over."
+    #    "\n\nYou can always go back to previous conversations " + \
+    #    "with the /history command."
     await update.message.reply_text(text)
 
     # Process chat data
@@ -92,6 +115,12 @@ async def save(update: Update, context: CallbackContext):
     Generates a new summary and title for the current chat,
     and stores it in the database.
     """
+
+    logger.debug(
+        "Chat saved. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
 
     # Reply to the user immediately
     text = "Saving the chat..."
@@ -128,6 +157,15 @@ async def unknown(update: Update, context: CallbackContext):
     Sends a message when an unknown command is entered.
     """
 
+    entered_command = update.message.text
+
+    logger.warning(
+        "Wrong command: %s. Chat ID: %s. Username: %s",
+        entered_command,
+        update.message.chat_id,
+        update.message.from_user.username
+    )
+
     text = "Sorry, I didn't understand that command."
 
     await context.bot.send_message(chat_id=update.message.chat_id, text=text)
@@ -139,6 +177,12 @@ async def chat(update: Update, context: CallbackContext):
     Processes user input, generates a response using GPT-3.5,
     and sends the response to the user.
     """
+
+    logger.debug(
+        "Message sent. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
 
     text = update.message.text
     telegram_id = update.message.chat.id
@@ -194,6 +238,12 @@ async def retry(update: Update, context: CallbackContext):
     Retries the last user's request with the same conversation history.
     """
 
+    logger.debug(
+        "Retry. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
+
     telegram_id = update.message.chat.id
     chat = await get_or_create_chat(telegram_id)
 
@@ -243,6 +293,13 @@ async def retry(update: Update, context: CallbackContext):
 
 @send_action(ChatAction.TYPING)
 async def img(update: Update, context: CallbackContext):
+
+    logger.debug(
+        "Image requested. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
+
     text = ' '.join(context.args)
     telegram_id = update.message.chat.id
     username = update.message.from_user.username
@@ -276,5 +333,11 @@ async def img(update: Update, context: CallbackContext):
         )
 
 
-def error_handler(update: Update, context: CallbackContext) -> None:
-    logger.error('Update "%s" caused error "%s"', update, context.error)
+async def error_handler(update: Update, context: CallbackContext) -> None:
+
+    logger.error('Update: "%s" \ncaused error: "%s"', update, context.error)
+
+    # await context.bot.send_message(
+    #     chat_id=update.message.chat_id,
+    #     text=context.error
+    # )

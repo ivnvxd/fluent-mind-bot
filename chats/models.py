@@ -39,7 +39,7 @@ class Text(models.Model):
         ('text', 'Text'),
         ('img', 'Image'),
     ]
-    
+
     telegram_id = models.CharField(
         max_length=25,
         verbose_name='Telegram user ID'

@@ -1,5 +1,3 @@
-import logging
-
 from django.conf import settings
 
 from telegram import Update
@@ -10,12 +8,6 @@ from bot import handlers
 
 TOKEN = settings.TELEGRAM_BOT_TOKEN
 API_KEY = settings.OPENAI_API_KEY
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
 
 application = Application.builder().token(TOKEN).build()
 
