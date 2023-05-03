@@ -45,11 +45,22 @@ async def start(update: Update, context: CallbackContext):
         update.message.from_user.username
         )
 
+    # Reply to the user immediately
     await context.bot.send_message(
         chat_id=update.message.chat_id,
         text=START_MESSAGE,
         parse_mode=ParseMode.MARKDOWN
     )
+
+    # Process chat data
+    telegram_id = update.message.chat.id
+    current_chat = await get_or_create_chat(telegram_id)
+
+    messages_count = await get_messages_count(telegram_id, current_chat)
+    if messages_count == 0:
+        await delete_chat(current_chat)
+
+    await get_or_create_chat(telegram_id, create_new_chat=True)
 
 
 async def help(update: Update, context: CallbackContext):
@@ -95,15 +106,7 @@ async def new(update: Update, context: CallbackContext):
 
     messages_count = await get_messages_count(telegram_id, current_chat)
 
-    if messages_count > 0:
-        request = await get_conversation_history(
-            telegram_id=telegram_id,
-            chat=current_chat
-        )
-        summary = await get_summary(request)
-        current_chat.summary = summary[:1000]
-        await save_chat(current_chat)
-    else:
+    if messages_count == 0:
         await delete_chat(current_chat)
 
     await get_or_create_chat(telegram_id, create_new_chat=True)
@@ -140,6 +143,7 @@ async def save(update: Update, context: CallbackContext):
         summary = await get_summary(request)
         current_chat.summary = summary[:1000]
 
+        request = [None, {"role": "assistant", "content": summary}]
         title = await get_topic(request)
         current_chat.topic = title[:250]
 
@@ -198,10 +202,11 @@ async def chat(update: Update, context: CallbackContext):
     answer = response['choices'][0]['message']['content']
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
+    # total_tokens = response['usage']['total_tokens']
 
     logger.info('request: %s', text)
     logger.info('answer: %s', answer)
-    logger.debug('response: %s', response)
+    logger.debug('usage: %s', response['usage'])
 
     # Send the response message as early as possible
     await context.bot.send_message(
@@ -272,9 +277,11 @@ async def retry(update: Update, context: CallbackContext):
     answer = response['choices'][0]['message']['content']
     completion_tokens = response['usage']['completion_tokens']
     prompt_tokens = response['usage']['prompt_tokens']
+    # total_tokens = response['usage']['total_tokens']
 
     logger.info("response: %s", last_user_message['content'])
     logger.info("response: %s", answer)
+    logger.debug('usage: %s', response['usage'])
 
     # Send the response message
     await context.bot.send_message(
@@ -335,9 +342,27 @@ async def img(update: Update, context: CallbackContext):
 
 async def error_handler(update: Update, context: CallbackContext) -> None:
 
-    logger.error('Update: "%s" \ncaused error: "%s"', update, context.error)
+    logger.error('Update: "%s" \nError: "%s"', update, context.error)
 
     # await context.bot.send_message(
     #     chat_id=update.message.chat_id,
     #     text=context.error
     # )
+
+
+# async def history(update: Update, context: CallbackContext) -> None:
+
+#     logger.debug(
+#         "History requested. Chat ID: %s. Username: %s",
+#         update.message.chat_id,
+#         update.message.from_user.username
+#         )
+
+#     telegram_id = update.message.chat.id
+#     chat = await get_or_create_chat(telegram_id)
+
+
+# Function that shows the conversation history in format "chat_id: topic"
+# containing all the chats of the current user
+# async def history(update: Update, context: CallbackContext) -> None:
+#     pass

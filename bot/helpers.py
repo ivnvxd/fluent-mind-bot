@@ -11,7 +11,7 @@ from bot import database
 
 
 MAX_TOKENS = 4096
-TOKENS_BUFFER = 100
+TOKENS_BUFFER = 200
 
 system = {"role": "system", "content": "You are a helpful assistant."}
 
@@ -150,6 +150,7 @@ async def get_topic(request):
     topic = response['choices'][0]['message']['content']
 
     logger.info('topic: %s', topic)
+    logger.debug('usage: %s', response['usage'])
 
     return topic
 
@@ -173,6 +174,7 @@ async def get_summary(request):
     summary = response['choices'][0]['message']['content']
 
     logger.info('summary: %s', summary)
+    logger.debug('usage: %s', response['usage'])
 
     return summary
 

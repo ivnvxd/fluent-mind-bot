@@ -76,8 +76,6 @@ class TestHandlers(IsolatedAsyncioTestCase):
         # self.context.bot.send_message.assert_called()
         handlers.get_or_create_chat.assert_called()
         handlers.get_messages_count.assert_called()
-        handlers.get_conversation_history.assert_called()
-        handlers.save_chat.assert_called()
 
     async def test_save(self):
         await handlers.save(self.update, self.context)
