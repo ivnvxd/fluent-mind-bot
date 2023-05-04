@@ -17,6 +17,7 @@ django-bootstrap4 = "^23.1"
 tiktoken = "^0.3.3"
 colorlog = "^6.7.0"
 marvin = "^0.8.0"
+langchain = "0.0.153"
 
 
 [tool.poetry.group.dev.dependencies]
