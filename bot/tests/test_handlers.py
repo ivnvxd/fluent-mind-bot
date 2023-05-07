@@ -48,8 +48,12 @@ class TestHandlers(IsolatedAsyncioTestCase):
                 'usage': {'completion_tokens': 5, 'prompt_tokens': 10},
             }
         )
-        handlers.get_topic = AsyncMock(return_value="Test topic")
-        handlers.get_summary = AsyncMock(return_value="Test summary")
+        handlers.get_conversation_topic = AsyncMock(
+            return_value="Test topic"
+        )
+        handlers.get_conversation_summary = AsyncMock(
+            return_value="Test summary"
+        )
         handlers.get_or_create_chat = AsyncMock(
             return_value=AsyncMock()
         )

@@ -5,8 +5,8 @@ from telegram import Update, Chat, User, Message
 from telegram.ext import CallbackContext
 
 from bot.helpers import (
-    send_action, get_topic, get_summary, save_chat, delete_chat,
-    get_conversation_history, save_text_entry, call_openai_api
+    send_action, get_conversation_topic, get_conversation_summary, save_chat,
+    delete_chat, get_conversation_history, save_text_entry, call_openai_api
 )
 from bot.database import get_or_create_chat, create_message_entry
 from bot.handlers import ChatAction
@@ -46,16 +46,16 @@ context = CallbackContext(None, None, None)
 
 
 class TestHelpers(TestCase):
-    async def test_get_topic(self):
+    async def test_get_conversation_topic(self):
         with patch("bot.helpers.call_openai_api", return_value=API_RESPONSE):
             request = [{'role': 'user', 'content': TEXT}]
-            topic = await get_topic(request)
+            topic = await get_conversation_topic(request)
             self.assertEqual(topic, RESPONSE_TEXT)
 
-    async def test_get_summary(self):
+    async def test_get_conversation_summary(self):
         with patch("bot.helpers.call_openai_api", return_value=API_RESPONSE):
             request = [{'role': 'user', 'content': TEXT}]
-            summary = await get_summary(request)
+            summary = await get_conversation_summary(request)
             self.assertEqual(summary, RESPONSE_TEXT)
 
     async def test_save_delete_chat(self):

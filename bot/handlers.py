@@ -7,11 +7,16 @@ from telegram.constants import ParseMode, ChatAction
 # from bot import helpers
 # from bot import database
 
-from bot.helpers import send_action, get_topic, save_chat, delete_chat, \
-    get_summary, get_conversation_history, save_text_entry, call_openai_api, \
-    openai_image_create, logger
-from bot.database import get_messages_count, get_or_create_chat, \
+from bot.helpers import (
+    send_action, get_conversation_topic, save_chat,
+    delete_chat, get_conversation_summary, get_conversation_history,
+    save_text_entry, call_openai_api, openai_image_create,
+    get_article_summary, logger
+)
+from bot.database import (
+    get_messages_count, get_or_create_chat,
     create_message_entry, get_last_text_entry
+)
 
 
 HELP_MESSAGE = (
@@ -19,6 +24,7 @@ HELP_MESSAGE = (
     "🔄 /retry — Regenerate last answer\n"
     "✨ /new — Start new chat\n"
     "🏞️ /img _<prompt>_ — Generate image\n"
+    "📝 /sum _<url>_ — Summarize article\n"
     "❓ /help — Show help\n"
 )
 
@@ -140,11 +146,11 @@ async def save(update: Update, context: CallbackContext):
             telegram_id=telegram_id,
             chat=current_chat
         )
-        summary = await get_summary(request)
+        summary = await get_conversation_summary(request)
         current_chat.summary = summary[:1000]
 
         request = [None, {"role": "assistant", "content": summary}]
-        title = await get_topic(request)
+        title = await get_conversation_topic(request)
         current_chat.topic = title[:250]
 
         await save_chat(current_chat)
@@ -231,7 +237,7 @@ async def chat(update: Update, context: CallbackContext):
 
     if chat.topic == "":
         request.append({"role": 'assistant', "content": answer})
-        topic = await get_topic(request)
+        topic = await get_conversation_topic(request)
         chat.topic = topic[:250]
 
         await save_chat(chat)
@@ -344,10 +350,57 @@ async def error_handler(update: Update, context: CallbackContext) -> None:
 
     logger.error('Update: "%s" \nError: "%s"', update, context.error)
 
-    # await context.bot.send_message(
-    #     chat_id=update.message.chat_id,
-    #     text=context.error
-    # )
+
+async def summarize(update: Update, context: CallbackContext) -> None:
+
+    logger.debug(
+        "Summary. Chat ID: %s. Username: %s",
+        update.message.chat_id,
+        update.message.from_user.username
+        )
+
+    url = ' '.join(context.args)
+    telegram_id = update.message.chat.id
+    username = update.message.from_user.username
+
+    chat = await get_or_create_chat(telegram_id)
+
+    if len(context.args) != 1:
+        answer = "Usage: /sum <url>"
+        logger.warning(answer)
+        await update.message.reply_text(answer)
+    else:
+        logger.info('request: %s', url)
+        response = await get_article_summary(url)
+
+        answer = response['choices'][0]['message']['content']
+        completion_tokens = response['usage']['completion_tokens']
+        prompt_tokens = response['usage']['prompt_tokens']
+        # total_tokens = response['usage']['total_tokens']
+
+        logger.info('answer: %s', answer)
+        logger.debug('usage: %s', response['usage'])
+
+        # Send the response message as early as possible
+        await context.bot.send_message(
+            chat_id=telegram_id,
+            text=answer,
+            parse_mode="Markdown",
+        )
+
+        # Process the remaining data
+        await create_message_entry(
+            chat=chat,
+            telegram_id=telegram_id,
+            username=username,
+            request=url,
+            response=answer,
+            completion_tokens=completion_tokens,
+            prompt_tokens=prompt_tokens,
+        )
+
+        chat.last_update = timezone.now()
+        await save_chat(chat)
 
 
 # async def history(update: Update, context: CallbackContext) -> None:

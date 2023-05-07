@@ -1,6 +1,8 @@
 import openai
 import tiktoken
 import logging
+import httpx
+import marvin
 
 from colorlog import ColoredFormatter
 from functools import wraps
@@ -45,7 +47,7 @@ def setup_colored_logging(level=logging.DEBUG):
     logger = logging.getLogger(__name__)
     logger.setLevel(level)
     logger.addHandler(console_handler)
-    # logger.propagate = False
+    logger.propagate = False
 
     return logger
 
@@ -133,7 +135,7 @@ def save_text_entry(text_entry):
     text_entry.save()
 
 
-async def get_topic(request):
+async def get_conversation_topic(request):
     """
     Generates a short sentence describing the topic of the answer.
 
@@ -155,7 +157,7 @@ async def get_topic(request):
     return topic
 
 
-async def get_summary(request):
+async def get_conversation_summary(request):
     """
     Generates a summary of the conversation in one paragraph.
 
@@ -246,3 +248,40 @@ def get_conversation_history(telegram_id, chat, text=""):
         ])
 
     return request
+
+
+@sync_to_async
+def get_content_from_url(url: str) -> str:
+    response = httpx.get(url)
+    # logger.info('response: %s', response.content)
+    content = marvin.utilities.strings.html_to_content(response.content)
+    logger.info('content: %s', content)
+
+    return content
+
+
+async def get_article_summary(url: str) -> str:
+    content = await get_content_from_url(url)
+
+    text = (
+        "Provide a comprehensive and concise summary of the provided text, "
+        "highlighting its main ideas and key points, while maintaining the "
+        "overall context and significance of the original content. "
+        "The summary should be a single paragraph of no more than 5 sentences "
+        "plus a list of bullet points."
+        )
+
+    request = [
+        {"role": "system", "content": "You are a text summarizer."},
+        {"role": 'user', "content": content},
+        {"role": 'user', "content": text}
+        ]
+
+    logger.info('request: %s', request)
+
+    response = await call_openai_api(request)
+
+    logger.info('summary: %s', response['choices'][0]['message']['content'])
+    logger.debug('usage: %s', response['usage'])
+
+    return response
