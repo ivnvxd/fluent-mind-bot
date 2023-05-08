@@ -18,6 +18,7 @@ tiktoken = "^0.3.3"
 colorlog = "^6.7.0"
 marvin = "^0.8.0"
 langchain = "0.0.153"
+trafilatura = "^1.5.0"
 
 
 [tool.poetry.group.dev.dependencies]

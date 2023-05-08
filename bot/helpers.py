@@ -1,9 +1,11 @@
 import openai
 import tiktoken
 import logging
-import httpx
-import marvin
+# import httpx
+# import marvin
+import trafilatura
 
+from trafilatura.settings import use_config
 from colorlog import ColoredFormatter
 from functools import wraps
 from typing import Callable
@@ -16,6 +18,10 @@ MAX_TOKENS = 4096
 TOKENS_BUFFER = 200
 
 system = {"role": "system", "content": "You are a helpful assistant."}
+
+# To disable signal in trafilatura
+config = use_config()
+config.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
 
 
 def setup_colored_logging(level=logging.DEBUG):
@@ -250,18 +256,17 @@ def get_conversation_history(telegram_id, chat, text=""):
     return request
 
 
-@sync_to_async
 def get_content_from_url(url: str) -> str:
-    response = httpx.get(url)
-    # logger.info('response: %s', response.content)
-    content = marvin.utilities.strings.html_to_content(response.content)
-    logger.info('content: %s', content)
+    downloaded = trafilatura.fetch_url(url)
+    content = trafilatura.extract(downloaded, config=config)
+
+    # logger.info('content: %s', content)
 
     return content
 
 
 async def get_article_summary(url: str) -> str:
-    content = await get_content_from_url(url)
+    content = get_content_from_url(url)
 
     text = (
         "Provide a comprehensive and concise summary of the provided text, "
@@ -277,11 +282,11 @@ async def get_article_summary(url: str) -> str:
         {"role": 'user', "content": text}
         ]
 
-    logger.info('request: %s', request)
+    # logger.info('request: %s', request)
 
     response = await call_openai_api(request)
 
-    logger.info('summary: %s', response['choices'][0]['message']['content'])
-    logger.debug('usage: %s', response['usage'])
+    # logger.info('summary: %s', response['choices'][0]['message']['content'])
+    # logger.debug('usage: %s', response['usage'])
 
     return response
